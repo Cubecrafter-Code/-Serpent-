@@ -10,8 +10,10 @@
       <header class="scoreText">Punktzahl:</header>
       <p class="scoreText" id="score">0</p>
     </div>
-    <button id="pauseButton" onclick="pauseGame">Hi</button>
 
+    <button class="pauseButton" onclick="pauseGame()">
+      <div class="pauseIcon" onclick="pauseGame()"></div>
+    </button>
     <style>
       html,
       body {
@@ -49,14 +51,43 @@
       #score {
         top: 50px;
       }
-      #pauseButton {
+
+      .pauseButton {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.1); /* Subtle transparency */
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
         top: 10px;
         right: 10px;
-        width: 5%;
-        height: 5%;
-        background-color: #222;
+        border-radius: 5%;
+      }
+
+      .pauseIcon {
+        width: 20px;
+        height: 24px;
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .pauseIcon::before,
+      .pauseIcon::after {
+        content: "";
+        width: 6px;
+        height: 100%;
+        background-color: #fff;
+        border-radius: 2px;
       }
     </style>
+    <script>
+      console.log(document.getElementById("pauseButton"));
+    </script>
   </head>
   <body onload="Game()">
     <div class="menu" id="mainMenu">
@@ -118,7 +149,7 @@
         font-size: 48px;
         font-family: monospace;
         height: fit-content;
-        background: linear-gradient(90deg, cyan, #00a0a0, cyan);
+        background: linear-gradient(cyan, #00c0c0, cyan);
         border-color: blueviolet;
         border-width: 5px;
         border-radius: 20px;
@@ -126,6 +157,27 @@
         margin: 10px;
 
         pointer-events: all;
+      }
+
+      .wrapper {
+        display: flex;
+      }
+
+      .input {
+        flex: 1;
+        min-width: 0;
+        margin-right: 0;
+      }
+      .wrapper.state0 input,
+      .wrapper.state0 button:nth-of-type(2) {
+        display: none;
+      }
+
+      .wrapper.state1 button:nth-of-type(1) {
+        display: none;
+      }
+      .wrapper button:nth-of-type(1) {
+        flex: 1;
       }
 
       .table {
@@ -162,28 +214,24 @@
         font-weight: bold;
       }
 
-      /* Gold */
       .tableRow:nth-child(2) td {
         background: linear-gradient(90deg, #ffd700, #ffb300);
         color: #222;
         font-weight: bold;
       }
 
-      /* Silver */
       .tableRow:nth-child(3) td {
         background: linear-gradient(90deg, #c0c0c0, #9e9e9e);
         color: #222;
         font-weight: bold;
       }
 
-      /* Bronze */
       .tableRow:nth-child(4) td {
         background: linear-gradient(90deg, #cd7f32, #a65e2e);
         color: white;
         font-weight: bold;
       }
 
-      /* Last place */
       .tableRow:last-of-type td {
         background: linear-gradient(90deg, #7cfc00, #00ff00);
         color: white;
@@ -235,17 +283,6 @@
       }
       let debugCounter = 0;
 
-      let hardModeMult;
-      let speedMult =
-        1 /
-        Number(
-          localStorage.getItem("speedMult") === null
-            ? 1
-            : localStorage.getItem("speedMult"),
-        );
-      isNaN(Number(speedMult)) || Number(speedMult) === 0
-        ? (speedMult = 1)
-        : (speedMult = 1 / Number(speedMult));
       let Key = {};
 
       let tickCounter = 0;
@@ -284,10 +321,6 @@
         srcCoords: { x: 10, y: 0 },
       };
 
-      let options = {
-        preventAccidentalLeave: 20,
-      };
-
       let SnakeSegments = [];
 
       let tiles = [];
@@ -313,7 +346,39 @@
         srcCoords: { x: 0, y: 0 },
         angle: 0,
       };
+
       let appleGrow = false;
+
+      let touch = {
+        lastpos: { x: 0, y: 0 },
+        currentpos: { x: 0, y: 0 },
+        dir: { w: 0, a: 0, s: 0, d: 0 },
+      };
+
+      let settings = {
+        game: {
+          speedMult: 1,
+          hardModeMult: { on: false, val: 1 },
+          preventAccidentalLeave: 20,
+        },
+        controls: {
+          swipeThreshold:
+            (deviceInfo.aspectRatio < canvas.width / canvas.height
+              ? deviceInfo.width
+              : deviceInfo.height) / 20,
+        }, //5%
+      };
+
+      isNaN(Number(settings.game.speedMult)) ||
+      Number(settings.game.speedMult) === 0
+        ? (settings.game.speedMult = 1)
+        : (settings.game.speedMult = 1 / Number(settings.game.speedMult));
+      /*
+      localStorage.setItem("Obj", JSON.stringify(Obj));
+      Obj =
+        localStorage.getItem("Obj") === null
+          ? new Obj()
+          : JSON.parse(localStorage.getItem("Obj")); //then use Obj.entries to check if everything exists or have a json file stored w the default options*/
 
       document.onkeydown = function (e) {
         if (e.repeat === false) {
@@ -387,42 +452,21 @@
           x: e.touches[0].clientX,
           y: e.touches[0].clientY,
         };
-        //e.preventDefault();
       });
 
       document.addEventListener("touchmove", function (e) {
-        //swipe(e);
-        //console.log()
         touch.currentpos = {
           x: e.touches[0].clientX,
           y: e.touches[0].clientY,
         };
         calcDir(touch.currentpos, touch.lastpos);
-        //e.preventDefault();
-      });
-
-      document.addEventListener("touchend", function (e) {
-        /*let swipe = {
-          dir: Object.entries(touch.dir).sort((a, b) => {
-            return b[1] - a[1];
-            })[0][0],
-            };*/
-
-        //console.log(swipe.dir, typeof swipe.dir);
-
-        touch.dir.w = 0;
-        touch.dir.d = 0;
-        touch.dir.a = 0;
-        touch.dir.s = 0;
-        //e.preventDefault();
       });
 
       function calcDir(objA, objB) {
         let difference = { x: objA.x - objB.x, y: objA.y - objB.y };
-        console.log(difference.x, difference.y);
         if (
-          Math.abs(difference.x) < swipeThreshold &&
-          Math.abs(difference.y) < swipeThreshold
+          Math.abs(difference.x) < settings.controls.swipethreshold &&
+          Math.abs(difference.y) < settings.controls.swipethreshold
         ) {
           return;
         }
@@ -439,31 +483,6 @@
           true,
         );
       }
-
-      let touch = {
-        lastpos: { x: 0, y: 0 },
-        currentpos: { x: 0, y: 0 },
-        dir: { w: 0, a: 0, s: 0, d: 0 },
-      };
-
-      let swipeThreshold =
-        (deviceInfo.aspectRatio < canvas.width / canvas.height
-          ? deviceInfo.width
-          : deviceInfo.height) / 20; //5%
-
-      /*
-                if(i assume the lock threshold should be more fine than the other but aigan not too small so u dont get diagonal swipes and then replace it eg swipe thershhold exeeded then from that exeed pos wehn smaller threshhold exeeded then use pos now eg x180 y20 new pos 100 20 when newpos.y and current pos differ by enough eg 50px then use that so mabye then x80 y240 after 20 still 220 y remaining and even if all other 80px still are bout to happen y is more dominant.
-
-            if u use the pos after small treshhold wich is to make sure that the new swipe started and then use the old threshhold - the new one so its extreamly clean then u aigna check if its more new than old so x 500 y 200 is only right => new check still right => new check still right bc right is more dominant but when u finally go more up / down u can use the logic
-              ){}
-            1. pos = touchstart
-            2. threshhold exeed calc dir and set pos there
-            3. if other axis > small threshhold set new pos then step 1 aigan
-
-
-
-            fixes mabye reset threshhold every few seconds so touchstart 10 seconds => x 80 y 20 then swipe x  20 y 100 but x threshhold gets called then y
-      */
 
       //Menu
 
@@ -518,12 +537,38 @@
       }
 
       class menuButtonJs {
-        constructor(text, onclick, id = null) {
+        constructor(text, onclick, hidden = false) {
           this.type = "button";
           this.text = text;
           this.className = "menuButton";
           this.onclick = onclick;
-          this.id = id;
+          if (hidden) {
+            this.hidden = "true";
+          }
+        }
+      }
+
+      class inputButton {
+        constructor(text, onclick, id) {
+          this.type = "div";
+          this.className = "wrapper state0";
+          this.children = [
+            new menuButtonJs(text, () => {
+              this.toggleHide();
+            }),
+            { type: "input", className: "menuButton input", placeholder: text },
+            new menuButtonJs("Ok", () => {
+              this.toggleHide();
+              onclick;
+            }),
+          ];
+          this.id = "inputButton_" + id;
+        }
+        toggleHide() {
+          document.getElementById(this.id).className =
+            document.getElementById(this.id).className === "wrapper state0"
+              ? "wrapper state1"
+              : "wrapper state0";
         }
       }
 
@@ -532,10 +577,10 @@
           [
             new menuButtonJs("Continue", continueGame),
             new menuButtonJs("Settings", settingsMenu),
-            new menuButtonJs("Leaderboard", leaderboard),
-            new menuButtonJs("Statistics", function () {
+            //new menuButtonJs("Leaderboard", leaderboard),
+            /*new menuButtonJs("Statistics", function () {
               debugButton(this);
-            }),
+            }),*/
             new menuButtonJs("New Game", newGame),
             new menuButtonJs("Quit", quit),
           ],
@@ -559,38 +604,91 @@
 
       function settingsMenu() {
         css.mainMenu.classList.add("expanded");
+        css.menuText.innerText = "Settings";
+
         createElements(
           [
             new menuButtonJs("Back", mainMenu),
-            new menuButtonJs("changeSpeedmult", changeSpeedmult),
-            new menuButtonJs("walls", function () {
-              debugButton(this);
-            }),
-            new menuButtonJs("hardMode", function () {
-              debugButton(this);
-            }),
-            new menuButtonJs("StartsegmentCount", function () {
-              debugButton(this);
-            }),
-
-            new menuButtonJs("more apples", function () {
-              debugButton(this);
-            }),
+            new menuButtonJs("Game", gameSettings),
+            /*new menuButtonJs("Graphics", graphicsSettings),
+            new menuButtonJs("Controls", controlSettings),
+            new menuButtonJs("Language", languageSettings),
+            new menuButtonJs("Dev", devSettings),*/
           ],
           css.mainMenu.buttonDiv,
         );
       }
 
-      function changeSpeedmult() {
-        speedMult = prompt("Was soll der Geschwindigkeitsmultiplikator sein?");
-        isNaN(Number(speedMult)) || speedMult == 0 || speedMult === null
-          ? (speedMult = 1)
-          : (speedMult = 1 / Number(speedMult));
-        localStorage.setItem("speedMult", speedMult);
+      function gameSettings() {
+        css.menuText.innerText = "Game Settings";
+        let n = 0;
+
+        createElements(
+          [
+            new menuButtonJs("Back", settingsMenu),
+            new inputButton(
+              "Change Speed",
+              function () {
+                changesettingsSpeedMult(getInputText(this));
+              },
+              n++,
+            ),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+      }
+
+      function graphicsSettings() {
+        css.menuText.innerText = "Graphics Settings";
+        createElements(
+          [new menuButtonJs("Back", settingsMenu)],
+          css.mainMenu.buttonDiv,
+        );
+      }
+
+      function controlSettings() {
+        css.menuText.innerText = "Controls";
+        createElements(
+          [new menuButtonJs("Back", settingsMenu)],
+          css.mainMenu.buttonDiv,
+        );
+      }
+
+      function languageSettings() {
+        css.menuText.innerText = "Language Settings";
+        createElements(
+          [new menuButtonJs("Back", settingsMenu)],
+          css.mainMenu.buttonDiv,
+        );
+      }
+
+      function devSettings() {
+        css.menuText.innerText = "Dev Settings";
+        createElements(
+          [new menuButtonJs("Back", settingsMenu)],
+          css.mainMenu.buttonDiv,
+        );
+      }
+
+      function getInputText(caller) {
+        let textInput = caller.parentNode.children[0].value;
+        caller.parentNode.children[0].value = "";
+        return textInput;
+      }
+
+      function changesettingsSpeedMult(textInput) {
+        settings.game.speedMult = textInput;
+        isNaN(Number(settings.game.speedMult)) ||
+        settings.game.speedMult == 0 ||
+        settings.game.speedMult === null
+          ? (settings.game.speedMult = 1)
+          : (settings.game.speedMult = 1 / Number(settings.game.speedMult));
+        localStorage.setItem("settings", settings);
       }
 
       function leaderboard() {
         css.mainMenu.classList.add("expanded");
+        css.menuText.innerText = "Leaderboard";
         createElements(
           [
             new menuButtonJs("Back", mainMenu),
@@ -606,7 +704,7 @@
               ["8th", "123456789", "999"],
               ["9th", "123456789", "999"],
               ["Xth", "123456789", "999"],
-              ["💩", "Oma", "1"],
+              ["💩", "12345678", "1"],
             ]),
           ],
           css.mainMenu.buttonDiv,
@@ -650,7 +748,7 @@
       function newGame() {
         if (
           Snake.segmentCount - Snake.startSegmentCount >=
-          options.preventAccidentalLeave
+          settings.game.preventAccidentalLeave
         ) {
           return;
         }
@@ -660,12 +758,12 @@
         Snake.y = 80;
         Snake.last.x = Snake.x;
         Snake.last.y = Snake.y;
+        Snake.segmentCount = Snake.startSegmentCount;
         Snake.nextAngle = 0;
         Snake.bufferAngle = 0;
         Snake.angle = 0;
-        Snake.segmentCount = Snake.startSegmentCount;
-
         SnakeSegments = [];
+
         generateSnakeSegments(Snake.x, Snake.y);
         directionHandler();
         updateDirection();
@@ -677,12 +775,14 @@
         for (let n = 0; n < tiles.length; n++) {
           tiles[n].state = "free";
         }
-
+        settings.game.hardModeMult.val = 1;
         tickCounter = 0;
-        hardModeMult = 1;
         alive = true;
         start = true;
         continueGame();
+        Snake.nextAngle = 0;
+        Snake.bufferAngle = 0;
+        Snake.angle = 0;
       }
 
       function generateSnakeSegments(x, y) {
@@ -867,7 +967,13 @@
           return;
         }
 
-        updateloop = setTimeout(update, (15 * speedMult) / hardModeMult);
+        updateloop = setTimeout(
+          update,
+          (15 * settings.game.speedMult) /
+            (settings.game.hardModeMult.on
+              ? settings.game.hardModeMult.val
+              : 1),
+        );
 
         directionHandler();
         move(Snake);
@@ -1051,7 +1157,8 @@
         Snake.segmentCount++;
         appleGrow = true;
         document.getElementById("score").textContent =
-          (Snake.segmentCount - Snake.startSegmentCount) / speedMult;
+          (Snake.segmentCount - Snake.startSegmentCount) /
+          settings.game.speedMult;
 
         let freeTiles = tiles.filter(
           (tileObj) => tileObj.state === "free" && tileObj.state !== "head",
@@ -1067,8 +1174,8 @@
           Apple.x = newAppleTile.x + map.start_x;
           Apple.y = newAppleTile.y + map.start_y;
         }
-        if (hardModeMult < 2 && true) /*hard mode is on*/ {
-          hardModeMult += 0.04;
+        if (settings.game.hardModeMult.val < 2 && true) /*hard mode is on*/ {
+          settings.game.hardModeMult.val += 0.04;
         }
       }
 
@@ -1096,7 +1203,6 @@
         alive = false;
         start = false;
         Snake.nextAngle = "none";
-        //alert(`You ate: ${Snake.segmentCount - 3} Apples`);
         mainMenu();
         createElements(
           [
@@ -1105,15 +1211,15 @@
               pauseGame();
               mainMenu();
             }),
-            new menuButtonJs("LeaderBoardEntry", function () {
+            /*new menuButtonJs("LeaderBoardEntry", function () {
               debugButton(this);
-            }),
+            }),*/
             new menuButtonJs("New Game", newGame),
-            new tableAssembler("gameStats", [
+            /*new tableAssembler("gameStats", [
               ["Rank", "", "smth"],
               ["Score", "", "smth"],
               ["ApplesEaten", "", "smth"],
-            ]),
+            ]),*/
           ],
           css.mainMenu.buttonDiv,
         );
@@ -1164,10 +1270,10 @@
         ctx.fillRect(
           touch.lastpos.x / (deviceInfo.width / canvas.width),
           touch.lastpos.y / ((deviceInfo.height - 2000) / canvas.height),
-          swipeThreshold,
-          swipeThreshold,
+          settings.controls.swipethreshold,
+          settings.controls.swipethreshold,
         );
-        
+        */
         let aspectRatioRatio =
           canvas.width /
           canvas.height /
@@ -1183,33 +1289,33 @@
             (aspectRatioRatio < 1
               ? (canvas.width * (1 / aspectRatioRatio - 1)) / 2
               : 0) -
-            swipeThreshold *
+            settings.controls.swipethreshold *
               (aspectRatioRatio < 1
                 ? canvas.width / canvas.getBoundingClientRect().width
                 : canvas.height / canvas.getBoundingClientRect().height),
 
-          touch.lastpos.y / //- swipeThreshold / 2) /
+          touch.lastpos.y / //- settings.controls.swipethreshold / 2) /
             (canvas.getBoundingClientRect().height /
               (aspectRatioRatio > 1 ? aspectRatioRatio : 1) /
               canvas.height) -
             (aspectRatioRatio > 1
               ? (canvas.height * (aspectRatioRatio - 1)) / 2
               : 0) -
-            swipeThreshold *
+            settings.controls.swipethreshold *
               (aspectRatioRatio < 1
                 ? canvas.width / canvas.getBoundingClientRect().width
                 : canvas.height / canvas.getBoundingClientRect().height),
-          swipeThreshold *
+          settings.controls.swipethreshold *
             (aspectRatioRatio < 1
               ? canvas.width / canvas.getBoundingClientRect().width
               : canvas.height / canvas.getBoundingClientRect().height) *
             2,
-          swipeThreshold *
+          settings.controls.swipethreshold *
             (aspectRatioRatio < 1
               ? canvas.width / canvas.getBoundingClientRect().width
               : canvas.height / canvas.getBoundingClientRect().height) *
             2,
-        );*/
+        );
         requestAnimationFrame(draw);
       }
 
