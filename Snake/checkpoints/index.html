@@ -1321,28 +1321,30 @@
         let aspectRatioRatio =
           canvas.width / canvas.height / (deviceInfo.width / deviceInfo.height);
 
-        ctx.fillRect(
-          touch.lastpos.x /
-            ((deviceInfo.width * //real w to c w
-              (aspectRatioRatio < 1 ? aspectRatioRatio : 1)) /
-              canvas.width) -
-            (aspectRatioRatio < 1
-              ? canvas.width / (aspectRatioRatio - 1) / 2
-              : 0) -
-            swipeThresholdButForCanvas(),
+        if (false) {
+          ctx.fillRect(
+            touch.lastpos.x /
+              ((deviceInfo.width * //real w to c w
+                (aspectRatioRatio < 1 ? aspectRatioRatio : 1)) /
+                canvas.width) -
+              (aspectRatioRatio < 1
+                ? canvas.width / (aspectRatioRatio - 1) / 2
+                : 0) -
+              swipeThresholdButForCanvas(),
 
-          touch.lastpos.y /
-            (deviceInfo.height /
-              (aspectRatioRatio > 1 ? aspectRatioRatio : 1) /
-              canvas.height) -
-            (aspectRatioRatio > 1
-              ? (canvas.height * (aspectRatioRatio - 1)) / 2
-              : 0) -
-            swipeThresholdButForCanvas(),
+            touch.lastpos.y /
+              (deviceInfo.height /
+                (aspectRatioRatio > 1 ? aspectRatioRatio : 1) /
+                canvas.height) -
+              (aspectRatioRatio > 1
+                ? (canvas.height * (aspectRatioRatio - 1)) / 2
+                : 0) -
+              swipeThresholdButForCanvas(),
 
-          swipeThresholdButForCanvas() * 2, //front and back
-          swipeThresholdButForCanvas() * 2,
-        );
+            swipeThresholdButForCanvas() * 2, //front and back
+            swipeThresholdButForCanvas() * 2,
+          );
+        }
         function swipeThresholdButForCanvas() {
           return (
             settings.controls.swipeThreshold.val *
