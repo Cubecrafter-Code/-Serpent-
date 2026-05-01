@@ -334,26 +334,6 @@
         dir: { w: 0, a: 0, s: 0, d: 0 },
       };
 
-      /*let settings = {
-        game: {
-          speedMult: 1,
-          hardModeMult: { on: false, val: 1 },
-          preventAccidentalLeave: 20,
-        },
-        controls: {
-          swipeThreshold: new (function () {
-            this.mult = 2;
-            this.val =
-              ((deviceInfo.aspectRatio < canvas.width / canvas.height
-                ? deviceInfo.width
-                : deviceInfo.height) /
-                100) *
-              this.mult;
-          })(),
-        }, //5%
-      };*/
-
-      //console.log(await JSON.parse(fetch("settings.JSON")));
       let settings = JSON.parse(
         localStorage.getItem("settings") === null
           ? "{}"
@@ -375,6 +355,9 @@
 
         function getObjKeys(referenceObj, brokenObj) {
           Object.entries(referenceObj).forEach((element) => {
+            if (element[0] === "speedMult") {
+              console.log(element[1], settings.game.speedMult);
+            }
             if (
               typeof element[1] === "object" &&
               element[1] !== null &&
@@ -386,11 +369,14 @@
               }
               getObjKeys(element[1], brokenObj[element[0]]);
             } else {
-              brokenObj[element[0]] = element[1];
+              if (brokenObj[element[0]] == undefined) {
+                brokenObj[element[0]] = element[1];
+              }
             }
           });
         }
 
+        console.log(settings.game.speedMult);
         getObjKeys(
           {
             controls: {
@@ -406,25 +392,7 @@
           },
           settings,
         );
-        return await settings;
       }
-
-      /*
-      async function fetchSettings() {
-        const result = await fetch("settings.JSON");
-        const parse = await result.json();
-        return await parse;
-      }
-
-      fetchSettings()
-        .then((result) => {
-          console.log(result);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-        */
-      //defineSettings("settings.JSON");
 
       document.onkeydown = function (e) {
         if (e.repeat === false) {
@@ -1021,6 +989,7 @@
 
       async function startGame() {
         defineSettings().then(() => {
+          console.log(settings.game.speedMult);
           Game();
         });
       }
