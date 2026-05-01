@@ -1,0 +1,14 @@
+{
+    "game": {
+        "speedMult": 1,
+        "hardModeMult": { "on": false, "val": 1 },
+        "preventAccidentalLeave": 20
+    },
+    "controls": {
+        "swipeThreshold": {
+            "mult": 2,
+            "val": null
+        }
+    } ,
+    "arr": [1, 2, 3]
+}
