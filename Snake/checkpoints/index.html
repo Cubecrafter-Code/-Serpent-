@@ -24,8 +24,8 @@
       }
       canvas {
         background-color: #3f2800; /*00*/
-        width: var(--screenWidth);
-        height: var(--screenHeight);
+        width: 100vw;
+        height: 100vh;
         object-fit: contain;
         image-rendering: pixelated;
         image-rendering: crisp-edges;
@@ -55,7 +55,7 @@
       .pauseButton {
         width: 60px;
         height: 60px;
-        background: rgba(255, 255, 255, 0.1); /* Subtle transparency */
+        background: rgba(255, 255, 255, 0.1);
         border: 2px solid rgba(255, 255, 255, 0.2);
         border-radius: 50%;
         cursor: pointer;
@@ -85,11 +85,8 @@
         border-radius: 2px;
       }
     </style>
-    <script>
-      console.log(document.getElementById("pauseButton"));
-    </script>
   </head>
-  <body onload="Game()">
+  <body onload="startGame()">
     <div class="menu" id="mainMenu">
       <header id="menuText"></header>
       <div id="buttonDiv"></div>
@@ -101,7 +98,7 @@
 
       #mainMenu {
         position: absolute;
-        width: var(--menuButtonWidth);
+        width: 500px;
         left: 50%;
         transform: translateX(-50%);
         top: 100px;
@@ -244,12 +241,18 @@
       }
     </style>
     <script>
+      let canvas = document.getElementById("canvas1");
+      let ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+
       let deviceInfo = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        resulutionMult:
-          screen.height / document.getElementById("canvas1").height,
-        aspectRatio: screen.width / screen.height,
+        width: canvas.getBoundingClientRect().width,
+        height: canvas.getBoundingClientRect().height,
+        /*resulutionMult:
+          screen.height / document.getElementById("canvas1").height,*/
+        aspectRatio:
+          canvas.getBoundingClientRect().width /
+          canvas.getBoundingClientRect().height,
       };
 
       let css = {
@@ -261,33 +264,13 @@
 
       css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
 
-      document.documentElement.style.setProperty(
-        "--screenWidth",
-        deviceInfo.width + "px",
-      );
-      document.documentElement.style.setProperty(
-        "--screenHeight",
-        deviceInfo.height + "px",
-      );
-      document.documentElement.style.setProperty(
-        "--menuButtonWidth",
-        "500" + "px",
-      );
-      document.documentElement.style.setProperty(
-        "--menuLeft",
-        calcMiddle(deviceInfo.width, css.mainMenu.offsetWidth) + "px",
-      );
-
-      function calcMiddle(x, offset) {
-        return (x - offset) / 2;
-      }
       let debugCounter = 0;
 
       let Key = {};
 
       let tickCounter = 0;
       let alive = false;
-      let start = false;
+      let start = true;
       let updateloop;
       let directionChange;
 
@@ -299,10 +282,6 @@
         tile_length: 10,
         appleCout: 2,
       };
-
-      let canvas = document.getElementById("canvas1");
-      let ctx = canvas.getContext("2d");
-      ctx.imageSmoothingEnabled = false;
 
       let backgroundImage = new Image();
       let bufferDirection;
@@ -355,30 +334,97 @@
         dir: { w: 0, a: 0, s: 0, d: 0 },
       };
 
-      let settings = {
+      /*let settings = {
         game: {
           speedMult: 1,
           hardModeMult: { on: false, val: 1 },
           preventAccidentalLeave: 20,
         },
         controls: {
-          swipeThreshold:
-            (deviceInfo.aspectRatio < canvas.width / canvas.height
-              ? deviceInfo.width
-              : deviceInfo.height) / 20,
+          swipeThreshold: new (function () {
+            this.mult = 2;
+            this.val =
+              ((deviceInfo.aspectRatio < canvas.width / canvas.height
+                ? deviceInfo.width
+                : deviceInfo.height) /
+                100) *
+              this.mult;
+          })(),
         }, //5%
-      };
+      };*/
 
-      isNaN(Number(settings.game.speedMult)) ||
-      Number(settings.game.speedMult) === 0
-        ? (settings.game.speedMult = 1)
-        : (settings.game.speedMult = 1 / Number(settings.game.speedMult));
+      //console.log(await JSON.parse(fetch("settings.JSON")));
+      let settings = JSON.parse(
+        localStorage.getItem("settings") === null
+          ? "{}"
+          : localStorage.getItem("settings"),
+      );
+
+      async function defineSettings() {
+        let Json = await (await fetch("settings.JSON")).json();
+
+        if (
+          typeof settings !== "object" &&
+          settings !== null &&
+          !Array.isArray(settings)
+        ) {
+          settings = {};
+        }
+
+        getObjKeys(Json, settings);
+
+        function getObjKeys(referenceObj, brokenObj) {
+          Object.entries(referenceObj).forEach((element) => {
+            if (
+              typeof element[1] === "object" &&
+              element[1] !== null &&
+              !Array.isArray(element[1])
+            ) {
+              if (brokenObj?.[element[0]] === undefined) {
+                brokenObj[element[0]] = element[1];
+                return;
+              }
+              getObjKeys(element[1], brokenObj[element[0]]);
+            } else {
+              brokenObj[element[0]] = element[1];
+            }
+          });
+        }
+
+        getObjKeys(
+          {
+            controls: {
+              swipeThreshold: {
+                val:
+                  ((deviceInfo.aspectRatio < canvas.width / canvas.height
+                    ? deviceInfo.width
+                    : deviceInfo.height) /
+                    100) *
+                  settings.controls.swipeThreshold.mult,
+              },
+            },
+          },
+          settings,
+        );
+        return await settings;
+      }
+
       /*
-      localStorage.setItem("Obj", JSON.stringify(Obj));
-      Obj =
-        localStorage.getItem("Obj") === null
-          ? new Obj()
-          : JSON.parse(localStorage.getItem("Obj")); //then use Obj.entries to check if everything exists or have a json file stored w the default options*/
+      async function fetchSettings() {
+        const result = await fetch("settings.JSON");
+        const parse = await result.json();
+        return await parse;
+      }
+
+      fetchSettings()
+        .then((result) => {
+          console.log(result);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+        */
+      //defineSettings("settings.JSON");
 
       document.onkeydown = function (e) {
         if (e.repeat === false) {
@@ -447,26 +493,47 @@
         }
       }
 
+      document.addEventListener("mousedown", function (e) {
+        keyHandler("RMB", true);
+      });
+
       document.addEventListener("touchstart", function (e) {
+        startTouch(e.touches[0]);
+      });
+
+      function startTouch(e) {
         touch.lastpos = touch.currentpos = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY,
+          x: e.clientX,
+          y: e.clientY,
         };
+      }
+
+      document.addEventListener("mousemove", function (e) {
+        if (Key.RMB) {
+          calcDir(e);
+        }
       });
 
       document.addEventListener("touchmove", function (e) {
-        touch.currentpos = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY,
-        };
-        calcDir(touch.currentpos, touch.lastpos);
+        calcDir(e.touches[0]);
       });
 
-      function calcDir(objA, objB) {
-        let difference = { x: objA.x - objB.x, y: objA.y - objB.y };
+      document.addEventListener("mouseup", function () {
+        keyHandler("RMB", false);
+      });
+
+      function calcDir(e) {
+        touch.currentpos = {
+          x: e.clientX,
+          y: e.clientY,
+        };
+        let difference = {
+          x: touch.currentpos.x - touch.lastpos.x,
+          y: touch.currentpos.y - touch.lastpos.y,
+        };
         if (
-          Math.abs(difference.x) < settings.controls.swipethreshold &&
-          Math.abs(difference.y) < settings.controls.swipethreshold
+          Math.abs(difference.x) < settings.controls.swipeThreshold.val &&
+          Math.abs(difference.y) < settings.controls.swipeThreshold.val
         ) {
           return;
         }
@@ -551,15 +618,16 @@
       class inputButton {
         constructor(text, onclick, id) {
           this.type = "div";
-          this.className = "wrapper state0";
+          this.className = "wrapper state1";
           this.children = [
             new menuButtonJs(text, () => {
               this.toggleHide();
             }),
             { type: "input", className: "menuButton input", placeholder: text },
-            new menuButtonJs("Ok", () => {
-              this.toggleHide();
-              onclick;
+            new menuButtonJs("Ok", (e) => {
+              //this.toggleHide();
+
+              onclick(e);
             }),
           ];
           this.id = "inputButton_" + id;
@@ -628,8 +696,8 @@
             new menuButtonJs("Back", settingsMenu),
             new inputButton(
               "Change Speed",
-              function () {
-                changesettingsSpeedMult(getInputText(this));
+              function (e) {
+                changeSettingsSpeedMult(getInputText(e));
               },
               n++,
             ),
@@ -670,20 +738,20 @@
         );
       }
 
-      function getInputText(caller) {
-        let textInput = caller.parentNode.children[0].value;
-        caller.parentNode.children[0].value = "";
+      function getInputText(e) {
+        let textInput = e.target.parentNode.children[1].value;
+        e.target.parentNode.children[1].value = "";
         return textInput;
       }
 
-      function changesettingsSpeedMult(textInput) {
+      function changeSettingsSpeedMult(textInput) {
         settings.game.speedMult = textInput;
         isNaN(Number(settings.game.speedMult)) ||
         settings.game.speedMult == 0 ||
         settings.game.speedMult === null
           ? (settings.game.speedMult = 1)
           : (settings.game.speedMult = 1 / Number(settings.game.speedMult));
-        localStorage.setItem("settings", settings);
+        localStorage.setItem("settings", JSON.stringify(settings));
       }
 
       function leaderboard() {
@@ -951,8 +1019,15 @@
 
       //Game
 
+      async function startGame() {
+        defineSettings().then(() => {
+          Game();
+        });
+      }
+
       function Game() {
         //only functions
+        console.log(localStorage.getItem("settings"), 123);
         newGame();
 
         pauseGame();
@@ -1270,52 +1345,43 @@
         ctx.fillRect(
           touch.lastpos.x / (deviceInfo.width / canvas.width),
           touch.lastpos.y / ((deviceInfo.height - 2000) / canvas.height),
-          settings.controls.swipethreshold,
-          settings.controls.swipethreshold,
+          settings.controls.swipeThreshold.val,
+          settings.controls.swipeThreshold.val,
         );
         */
         let aspectRatioRatio =
-          canvas.width /
-          canvas.height /
-          (canvas.getBoundingClientRect().width /
-            canvas.getBoundingClientRect().height);
+          canvas.width / canvas.height / (deviceInfo.width / deviceInfo.height);
 
         ctx.fillRect(
           touch.lastpos.x /
-            1 /
-            ((canvas.getBoundingClientRect().width *
+            ((deviceInfo.width * //real w to c w
               (aspectRatioRatio < 1 ? aspectRatioRatio : 1)) /
               canvas.width) -
             (aspectRatioRatio < 1
-              ? (canvas.width * (1 / aspectRatioRatio - 1)) / 2
+              ? canvas.width / (aspectRatioRatio - 1) / 2
               : 0) -
-            settings.controls.swipethreshold *
-              (aspectRatioRatio < 1
-                ? canvas.width / canvas.getBoundingClientRect().width
-                : canvas.height / canvas.getBoundingClientRect().height),
+            swipeThresholdButForCanvas(),
 
-          touch.lastpos.y / //- settings.controls.swipethreshold / 2) /
-            (canvas.getBoundingClientRect().height /
+          touch.lastpos.y /
+            (deviceInfo.height /
               (aspectRatioRatio > 1 ? aspectRatioRatio : 1) /
               canvas.height) -
             (aspectRatioRatio > 1
               ? (canvas.height * (aspectRatioRatio - 1)) / 2
               : 0) -
-            settings.controls.swipethreshold *
-              (aspectRatioRatio < 1
-                ? canvas.width / canvas.getBoundingClientRect().width
-                : canvas.height / canvas.getBoundingClientRect().height),
-          settings.controls.swipethreshold *
-            (aspectRatioRatio < 1
-              ? canvas.width / canvas.getBoundingClientRect().width
-              : canvas.height / canvas.getBoundingClientRect().height) *
-            2,
-          settings.controls.swipethreshold *
-            (aspectRatioRatio < 1
-              ? canvas.width / canvas.getBoundingClientRect().width
-              : canvas.height / canvas.getBoundingClientRect().height) *
-            2,
+            swipeThresholdButForCanvas(),
+
+          swipeThresholdButForCanvas() * 2, //front and back
+          swipeThresholdButForCanvas() * 2,
         );
+        function swipeThresholdButForCanvas() {
+          return (
+            settings.controls.swipeThreshold.val *
+            (aspectRatioRatio < 1
+              ? canvas.width / aspectRatioRatio / deviceInfo.width
+              : (canvas.height * aspectRatioRatio) / deviceInfo.height)
+          );
+        }
         requestAnimationFrame(draw);
       }
 
