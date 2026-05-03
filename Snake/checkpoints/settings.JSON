@@ -1,8 +1,9 @@
 {
     "game": {
         "speedMult": 1,
+        "preventAccidentalLeave": 20,
         "hardModeMult": { "on": false, "val": 1 },
-        "preventAccidentalLeave": 20
+        "walls": true
     },
     "controls": {
         "swipeThreshold": {
