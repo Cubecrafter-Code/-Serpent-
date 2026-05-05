@@ -6,7 +6,7 @@
     <title>Schlange</title>
     <canvas id="canvas1" width="320" height="180"></canvas>
 
-    <div class="scoreText" id="scoreBox">
+    <div id="scoreDiv">
       <header class="scoreText">Punktzahl:</header>
       <p class="scoreText" id="score">0</p>
     </div>
@@ -20,8 +20,18 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
+
         touch-action: none;
       }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100dvh; /* important */
+        background: #3f2800; /* so “white area” isn’t visible */
+      }
+
       canvas {
         background-color: #3f2800; /*00*/
         width: 100vw;
@@ -29,17 +39,32 @@
         object-fit: contain;
         image-rendering: pixelated;
         image-rendering: crisp-edges;
+        touch-action: none;
+        user-select: none;
+        display: block;
+      }
+
+      #scoreDiv {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: black;
+        width: 250px;
       }
 
       .scoreText {
         top: 10px;
         position: absolute;
-        width: fit-content;
+        max-width: 100%;
+
         font-size: 42px;
         color: aqua;
         font-weight: bold;
         pointer-events: none;
         -webkit-text-stroke: 2px aqua;
+        white-space: nowrap; /* no wrapping */
+        overflow: hidden; /* hide overflow */
+        text-overflow: ellipsis;
         margin: 0;
       }
 
@@ -92,6 +117,10 @@
       <div id="buttonDiv"></div>
     </div>
     <style>
+      /** {
+        outline: 1px solid red;
+      }*/
+
       [hidden] {
         display: none !important;
       }
@@ -131,6 +160,7 @@
 
       #buttonDiv {
         overflow-y: auto;
+        overscroll-behavior: contain;
         flex: 1;
         pointer-events: all;
         display: flex;
@@ -170,6 +200,7 @@
         min-width: 0;
         margin-right: 0;
       }
+
       .wrapper.state0 input,
       .wrapper.state0 button:nth-of-type(2) {
         display: none;
@@ -193,6 +224,19 @@
       .gridTitle {
         margin-top: 20px;
         grid-column: 1 / -1;
+        background: linear-gradient(lime, rgb(13, 134, 64), lime);
+
+        justify-self: center;
+        padding: 10px 25% 10px 25%;
+        width: fit-content;
+        position: sticky;
+        margin: 40px 10px 25px 10px;
+        top: 0px;
+
+        border: solid;
+        border-color: green;
+        border-width: 5px;
+        border-radius: 20px;
       }
 
       .gridWrap {
@@ -275,11 +319,42 @@
       let ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
 
+      function resizeCanvas() {
+        const baseWidth = canvas.width;
+        const baseHeight = canvas.height;
+
+        const scale = Math.min(
+          window.innerWidth / baseWidth,
+          window.innerHeight / baseHeight,
+        );
+
+        canvas.style.width = baseWidth * scale + "px";
+        canvas.style.height = baseHeight * scale + "px";
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      window.addEventListener("orientationchange", () => {
+        setTimeout(resizeCanvas, 100);
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (
+          ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(
+            e.code,
+          )
+        ) {
+          e.preventDefault();
+        }
+      });
+
+      canvas.tabIndex = 0;
+      canvas.focus();
+
       let deviceInfo = {
         width: canvas.getBoundingClientRect().width,
         height: canvas.getBoundingClientRect().height,
         /*resulutionMult:
-          screen.height / document.getElementById("canvas1").height,*/
+                screen.height / document.getElementById("canvas1").height,*/
         aspectRatio:
           canvas.getBoundingClientRect().width /
           canvas.getBoundingClientRect().height,
@@ -307,6 +382,10 @@
         },
         functions: {
           pause: pauseGame,
+          scoreUp: function () {
+            console.log("em");
+            Snake.segmentCount++;
+          },
         },
       };
 
@@ -326,6 +405,7 @@
         },
         functions: {
           Escape: "pause",
+          KeyP: "scoreUp",
         },
       };
 
@@ -474,7 +554,6 @@
           state &&
           Key.functions[Keybinds.functions?.[inputKey]] !== undefined
         ) {
-          console.log(Key.state);
           Key.functions[Keybinds.functions?.[inputKey]]();
         }
 
@@ -494,6 +573,7 @@
       });
 
       document.addEventListener("touchstart", function (e) {
+        //canvas.focus();
         startTouch(e.touches[0]);
       });
 
@@ -613,12 +693,11 @@
 
       class inputButton {
         constructor(text, onclick, val, id) {
-          console.log(val);
           this.type = "div";
           this.className = "wrapper state0";
           this.children = [
             new menuButtonJs(
-              `${text}: ${Number(val) === val ? (val < 999 ? (val < 9.4 ? Math.round(val * 100) / 100 : Math.round(val)) : 999) : val}`,
+              `${text}${val !== undefined ? ": " + (Number(val) === val ? (val < 999 ? (val < 9.4 ? Math.round(val * 100) / 100 : Math.round(val)) : 999) : val) : ""}`,
               () => {
                 this.toggleHide();
               },
@@ -647,8 +726,8 @@
             new menuButtonJs("Settings", settingsMenu),
             new menuButtonJs("Leaderboard", leaderboard),
             /*new menuButtonJs("Statistics", function () {
-              debugButton(this);
-            }),*/
+                    debugButton(this);
+                  }),*/
             new menuButtonJs("New Game", newGame),
             new menuButtonJs("Quit", quit),
           ],
@@ -666,8 +745,10 @@
       }
 
       function pauseGame() {
-        alive = false;
-        mainMenu();
+        if (alive) {
+          alive = false;
+          mainMenu();
+        }
       }
 
       function settingsMenu() {
@@ -681,7 +762,7 @@
             //new menuButtonJs("Graphics", graphicsSettings),
             new menuButtonJs("Controls", controlSettings),
             /*new menuButtonJs("Language", languageSettings),
-            new menuButtonJs("Dev", devSettings),*/
+                  new menuButtonJs("Dev", devSettings),*/
             //cookies
           ],
           css.mainMenu.buttonDiv,
@@ -788,20 +869,21 @@
               new menuButtonJs("Back", controlSettings),
               new grid(currentKeybinds),
               /*{
-                type: "div",
-                class: "tableWithHeader",
-                children: [
-                  { type: "header", text: "idk" },
-                  gameSettings,
+                      type: "div",
+                      class: "tableWithHeader",
+                      children: [
+                        { type: "header", text: "idk" },
+                        gameSettings,
 
-                  new tableAssembler("Keybinds", tableArr),
-                  new tableAssembler("Keybinds", tableArr),
-                ],
-              },*/
+                        new tableAssembler("Keybinds", tableArr),
+                        new tableAssembler("Keybinds", tableArr),
+                      ],
+                    },*/
             ],
             css.mainMenu.buttonDiv,
           );
         }
+
         function languageSettings() {
           css.menuText.innerText = "Language Settings";
           createElements(
@@ -818,21 +900,23 @@
           );
         }
 
-        function getInputText(e, type) {
-          let textInput = e.target.parentNode.children[1].value;
-          e.target.parentNode.children[1].value = "";
-          switch (type) {
-            case "Number":
-              return isNaN(Number(textInput)) ? null : Number(textInput);
-            default:
-              console.log("needType");
-              return null;
-          }
-        }
-
         function applySettings() {
           settings = browsingSettings;
           localStorage.setItem("settings", JSON.stringify(settings));
+        }
+      }
+
+      function getInputText(e, type) {
+        let textInput = e.target.parentNode.children[1].value;
+        e.target.parentNode.children[1].value = "";
+        switch (type) {
+          case "Number":
+            return isNaN(Number(textInput)) ? null : Number(textInput);
+          case "string":
+            return textInput;
+          default:
+            console.log("needType", type);
+            return null;
         }
       }
 
@@ -870,26 +954,77 @@
         div() {}
       }
 
+      let leaderboardArr = localStorage.getItem("leaderboardArray")
+        ? JSON.parse(localStorage.getItem("leaderboardArray"))
+        : [
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+
+            { name: "-", score: 0 },
+          ];
+
+      console.log(JSON.parse(localStorage.getItem("leaderboardArray")));
+
+      function leaderBoardEntry(input) {
+        //console.log(input);
+        leaderboardArr.push({
+          name: input,
+          score: Math.ceil(
+            (Snake.segmentCount - Snake.startSegmentCount) /
+              settings.game.speedMult,
+          ),
+        });
+        leaderboardArr.sort((a, b) => b.score - a.score);
+        if (leaderboardArr.length > 12) {
+          leaderboardArr.pop();
+        }
+        console.log(JSON.parse(JSON.stringify(leaderboardArr)));
+        localStorage.setItem(
+          "leaderboardArray",
+          JSON.stringify(leaderboardArr),
+        );
+      }
+
       function leaderboard() {
         css.mainMenu.classList.add("expanded");
         css.menuText.innerText = "Leaderboard";
+
+        //leaderboardArr.push({ name: "a", score: 1 });
+
         createElements(
           [
             new menuButtonJs("Back", mainMenu),
-            new tableAssembler("leaderboardTable", [
-              ["Rank", "Name", "Score"],
-              ["🏆", "123456789", "999"],
-              ["🥈", "123456789", "999"],
-              ["🥉", "123456789", "999"],
-              ["4th", "123456789", "999"],
-              ["5th", "123456789", "999"],
-              ["6th", "123456789", "999"],
-              ["7th", "123456789", "999"],
-              ["8th", "123456789", "999"],
-              ["9th", "123456789", "999"],
-              ["Xth", "123456789", "999"],
-              ["💩", "12345678", "1"],
-            ]),
+            new inputButton("LeaderBoardEntry", (e) =>
+              leaderBoardEntry(getInputText(e, "string")),
+            ),
+            new tableAssembler(
+              "leaderboardTable",
+              new (function () {
+                this.length = 0;
+                this[this.length++] = ["Rank", "Name", "Score"];
+                leaderboardArr.forEach((element, index) => {
+                  this[this.length++] = [
+                    `${
+                      index >= 0 && index <= 2
+                        ? ["🏆", "🥈", "🥉"][index]
+                        : index === leaderboardArr.length - 1
+                          ? "💩"
+                          : index + 1
+                    }`,
+                    element.name,
+                    element.score,
+                  ];
+                });
+              })(),
+            ),
           ],
           css.mainMenu.buttonDiv,
         );
@@ -934,7 +1069,8 @@
           Snake.segmentCount - Snake.startSegmentCount >=
             settings.game.preventAccidentalLeave &&
           e?.target?.innerText !== "Confirm Leave" &&
-          settings.game.preventAccidentalLeave > 0
+          settings.game.preventAccidentalLeave > 0 &&
+          e?.target?.innerHTML !== undefined
         ) {
           e.target.innerHTML = "Confirm Leave";
           console.log(e.target.innerText);
@@ -1140,6 +1276,7 @@
 
       async function Game() {
         //only functions //wait for settings to load
+        resizeCanvas();
         defineSettings().then(() => {
           newGame();
           pauseGame();
@@ -1147,6 +1284,7 @@
 
           loadImages();
           draw();
+          //dead();
         });
       }
 
@@ -1180,19 +1318,19 @@
           }
 
           /*console.log(
-                      Object.entries(
-                        tiles.reduce(
-                          (acc, { state }) => ({
-                            ...acc,
-                            [state]: (acc[state] || 0) + 1,
-                          }),
-                          {},
-                        ),
-                      )
-                        .map(([state, count]) => `${state}: ${count}`)
-                        .join("\n"),
-                    );
-                    */
+                            Object.entries(
+                              tiles.reduce(
+                                (acc, { state }) => ({
+                                  ...acc,
+                                  [state]: (acc[state] || 0) + 1,
+                                }),
+                                {},
+                              ),
+                            )
+                              .map(([state, count]) => `${state}: ${count}`)
+                              .join("\n"),
+                          );
+                          */
         }
 
         tickCounter++;
@@ -1413,15 +1551,27 @@
               pauseGame();
               mainMenu();
             }),
-            /*new menuButtonJs("LeaderBoardEntry", function () {
-              debugButton(this);
-            }),*/
+            new inputButton("LeaderBoardEntry", (e) =>
+              leaderBoardEntry(getInputText(e, "string")),
+            ),
             new menuButtonJs("New Game", newGame),
+            /*{
+              type: "div",
+              className: "wrapper confirm",
+              children: [
+                {
+                  type: "input",
+                  placeholder: "hi",
+                  className: "menuButton input",
+                },
+                new menuButtonJs("ok"),
+              ],
+            },*/
             /*new tableAssembler("gameStats", [
-              ["Rank", "", "smth"],
-              ["Score", "", "smth"],
-              ["ApplesEaten", "", "smth"],
-            ]),*/
+                    ["Rank", "", "smth"],
+                    ["Score", "", "smth"],
+                    ["ApplesEaten", "", "smth"],
+                  ]),*/
           ],
           css.mainMenu.buttonDiv,
         );
@@ -1469,13 +1619,13 @@
           move(SnakeSegments[0]);
         }
         /*
-        ctx.fillRect(
-          touch.lastpos.x / (deviceInfo.width / canvas.width),
-          touch.lastpos.y / ((deviceInfo.height - 2000) / canvas.height),
-          settings.controls.swipeThreshold.val,
-          settings.controls.swipeThreshold.val,
-        );
-        */
+              ctx.fillRect(
+                touch.lastpos.x / (deviceInfo.width / canvas.width),
+                touch.lastpos.y / ((deviceInfo.height - 2000) / canvas.height),
+                settings.controls.swipeThreshold.val,
+                settings.controls.swipeThreshold.val,
+              );
+              */
         let aspectRatioRatio =
           canvas.width / canvas.height / (deviceInfo.width / deviceInfo.height);
 
@@ -1568,35 +1718,35 @@
       }
 
       /*TODO
-                     leaderboard
+                           leaderboard
 
-                     win (death) menu
+                           win (death) menu
 
-                    settings + cookies
+                          settings + cookies
 
-                    sub settings menu (dev, textures,...)
+                          sub settings menu (dev, textures,...)
 
-                      all vars in dev settings, more apples
-
-
+                            all vars in dev settings, more apples
 
 
 
-              settings
-                choose all colors
-                + buttons
-
-                BUG FIX:
-                            textures Snake death
-                            wall wrap bug
 
 
-              quick: save and load keybinds similar to settings
-                      changeKeybinds in controls
-                      div w reset, name of button scroll allowed
+                    settings
+                      choose all colors
+                      + buttons
+
+                      BUG FIX:
+                                  textures Snake death
+                                  wall wrap bug
 
 
-                              */
+                    quick: save and load keybinds similar to settings
+                            changeKeybinds in controls
+                            div w reset, name of button scroll allowed
+
+
+                                    */
     </script>
   </body>
 </html>
