@@ -1002,9 +1002,7 @@
         createElements(
           [
             new menuButtonJs("Back", mainMenu),
-            new inputButton("LeaderBoardEntry", (e) =>
-              leaderBoardEntry(getInputText(e, "string")),
-            ),
+            
             new tableAssembler(
               "leaderboardTable",
               new (function () {
