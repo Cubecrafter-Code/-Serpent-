@@ -1,6 +1,8 @@
 {
     "game": {
         "speedMult": 1,
+        "apples": {"count": 1,
+    "hydra": false},
         "preventAccidentalLeave": 20,
         "hardModeMult": { "on": false, "val": 1 },
         "walls": true
