@@ -213,6 +213,64 @@
         flex: 1;
       }
 
+      .chooseButtonDiv {
+        display: flex;
+
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
+        font-size: 48px;
+        font-family: monospace;
+        font-weight: normal !important;
+        margin: 10px;
+        align-items: center;
+        justify-content: center;
+        gap: 50px;
+      }
+
+      .chooseButtonDiv div button {
+        justify-self: right;
+        margin: 0px;
+        background: rgba(0, 0, 0, 0.1);
+
+        font-size: 48px;
+        font-family: monospace;
+        flex: 1;
+        height: fit-content;
+
+        border-style: none none none solid;
+        border-color: #660000;
+      }
+
+      .chooseButtonDiv p {
+        margin: 10px;
+      }
+
+      .chooseButtonDiv div {
+        display: flex;
+        flex: 1;
+        margin-right: 10px;
+
+        background: linear-gradient(#ff0000, #990000, #ff0000);
+        border: solid;
+        border-color: #8866dd;
+        border-width: 3px;
+        border-radius: 20px;
+
+        overflow: hidden;
+      }
+
+      .chooseButtonDiv div button:nth-of-type(1) {
+        border: none;
+      }
+
+      .chooseButtonDiv .selected {
+        background: #ff0000aa;
+      }
+
       .gridContainer {
         width: 100%;
         display: grid;
@@ -383,7 +441,6 @@
         functions: {
           pause: pauseGame,
           scoreUp: function () {
-            console.log("em");
             Snake.segmentCount++;
           },
         },
@@ -408,6 +465,23 @@
           KeyP: "scoreUp",
         },
       };
+
+      let leaderboardArr = localStorage.getItem("leaderboardArray")
+        ? JSON.parse(localStorage.getItem("leaderboardArray"))
+        : [
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+
+            { name: "-", score: 0 },
+          ];
 
       let tickCounter = 0;
       let alive = false;
@@ -457,22 +531,12 @@
       }
 
       let Apples = [];
-      let Apple = {
-        x: 230,
-        y: 80,
-        width: map.tile_length,
-        height: map.tile_length,
-        src: "../textures/Strawberry.png",
-        srcCoords: { x: 0, y: 0 },
-        angle: 0,
-      };
 
       let appleGrow = false;
 
       let touch = {
         lastpos: { x: 0, y: 0 },
         currentpos: { x: 0, y: 0 },
-        dir: { w: 0, a: 0, s: 0, d: 0 },
       };
 
       let settings = JSON.parse(
@@ -639,7 +703,7 @@
 
           element?.id
             ? (tempElement.id = element.id)
-            : (tempElement.id = element.type + `_${tempCounter}`);
+            : console.error(new Error(`no Id: ${JSON.stringify(element)}`));
 
           for (const property in element) {
             switch (property) {
@@ -665,6 +729,7 @@
                 tempElement[`${property}`] = element[property];
                 break;
               }
+
               default:
                 tempElement.setAttribute(property, element[property]);
             }
@@ -680,11 +745,13 @@
       }
 
       class menuButtonJs {
+        static id = 0;
         constructor(text, onclick, hidden = false) {
           this.type = "button";
           this.text = text;
           this.className = "menuButton";
           this.onclick = onclick;
+          this.id = `button_${menuButtonJs.id++}`;
           if (hidden) {
             this.hidden = "true";
           }
@@ -692,9 +759,12 @@
       }
 
       class inputButton {
-        constructor(text, onclick, val, id) {
+        static id = 0;
+        constructor(text, onclick, val) {
           this.type = "div";
           this.className = "wrapper state0";
+          this.id = `inputButton_${inputButton.id}`;
+
           this.children = [
             new menuButtonJs(
               `${text}${val !== undefined ? ": " + (Number(val) === val ? (val < 999 ? (val < 9.4 ? Math.round(val * 100) / 100 : Math.round(val)) : 999) : val) : ""}`,
@@ -702,14 +772,22 @@
                 this.toggleHide();
               },
             ),
-            { type: "input", className: "menuButton input", placeholder: text },
+            {
+              type: "input",
+              className: "menuButton input",
+              placeholder: text,
+              id: `input_${inputButton.id}`,
+            },
             new menuButtonJs("Ok", (e) => {
               this.toggleHide();
+              let newVal = getInputText(e, "Number", false);
+              document.getElementById(this.children[0].id).innerText =
+                `${text}${newVal !== undefined ? ": " + (Number(newVal) === newVal ? (newVal < 999 ? (newVal < 9.4 ? Math.round(newVal * 100) / 100 : Math.round(newVal)) : 999) : val) : ""}`;
 
               onclick(e);
             }),
           ];
-          this.id = "inputButton_" + id;
+          inputButton.id++;
         }
         toggleHide() {
           document.getElementById(this.id).className =
@@ -720,6 +798,7 @@
       }
 
       function mainMenu() {
+        menuButtonJs.id = 0;
         createElements(
           [
             new menuButtonJs("Continue", continueGame),
@@ -754,10 +833,14 @@
       function settingsMenu() {
         css.mainMenu.classList.add("expanded");
         css.menuText.innerText = "Settings";
-        let browsingSettings = structuredClone(settings);
+
+        menuButtonJs.id = 0;
         createElements(
           [
-            new menuButtonJs("Back", mainMenu),
+            new menuButtonJs("Back", function () {
+              localStorage.setItem("settings", JSON.stringify(settings));
+              mainMenu();
+            }),
             new menuButtonJs("Game", gameSettings),
             //new menuButtonJs("Graphics", graphicsSettings),
             new menuButtonJs("Controls", controlSettings),
@@ -769,9 +852,91 @@
         );
 
         function gameSettings() {
-          css.menuText.innerText = "Game Settings";
-          let n = 0;
+          class chooseButton {
+            static id = 0;
+            constructor(onclick) {
+              this.type = "div";
+              this.id = `chooseButton_${chooseButton.id++}`;
 
+              this.className = "chooseButtonDiv";
+
+              this.children = [
+                { type: "p", id: "chooseButtonText", text: "Apples: " },
+                {
+                  type: "div",
+                  id: `${this.id}_buttonDiv`,
+                  children: [
+                    {
+                      type: "button",
+                      id: "1",
+                      class: "",
+                      onclick: (e) => {
+                        this.switchButton(e.target.id);
+                        onclick(1, "count", settings.game.apples);
+                      },
+                      text: "1",
+                    },
+                    {
+                      type: "button",
+                      id: "5",
+                      class: "",
+                      onclick: (e) => {
+                        this.switchButton(e.target.id);
+                        onclick(5, "count", settings.game.apples);
+                      },
+                      text: "5",
+                    },
+                    {
+                      type: "button",
+                      id: "hydra",
+                      class: settings.game.apples.hydra ? "selected" : "",
+                      onclick: (e) => {
+                        this.switchButton(e.target.id);
+                        onclick(
+                          !settings.game.apples.hydra,
+                          "hydra",
+                          settings.game.apples,
+                        );
+                        onclick(1, "count", settings.game.apples);
+                      },
+                      text: "Hydra",
+                    },
+                  ],
+                },
+              ];
+
+              this.children[1].children[
+                `${settings.game.apples.count === 1 ? 0 : 1}`
+              ].className = "selected";
+            }
+            switchButton(elementId) {
+              console.log(document.getElementById(elementId));
+              switch (elementId) {
+                case "hydra":
+                  console.log("hydra");
+                  document.getElementById("hydra").className =
+                    document.getElementById("hydra").className === ""
+                      ? "selected"
+                      : "";
+                  break;
+
+                case "1":
+                  console.log(1);
+                  document.getElementById("5").className = "";
+
+                case "5":
+                  console.log(5);
+                  document.getElementById("1").className = "";
+
+                default:
+                  document.getElementById(elementId).className = "selected";
+              }
+            }
+          }
+          css.menuText.innerText = "Game Settings";
+          inputButton.id = 0;
+          menuButtonJs.id = 0;
+          chooseButton.id = 0;
           createElements(
             [
               new menuButtonJs("Back", settingsMenu),
@@ -781,49 +946,53 @@
                   changeSettings(
                     1 / getInputText(e, "Number"),
                     "speedMult",
-                    browsingSettings.game,
+                    settings.game,
                   ),
                 1 / settings.game.speedMult,
-                n++,
               ),
+              new chooseButton(changeSettings),
               new inputButton(
                 "Deny Leave",
                 (e) =>
                   changeSettings(
                     getInputText(e, "Number"),
                     "preventAccidentalLeave",
-                    browsingSettings.game,
+                    settings.game,
                   ),
                 settings.game.preventAccidentalLeave,
-                n++,
               ),
               new menuButtonJs(
                 `Hard Mode: ${settings.game.hardModeMult.on}`,
                 (e) => {
-                  browsingSettings.game.hardModeMult.on =
-                    !browsingSettings.game.hardModeMult.on;
+                  settings.game.hardModeMult.on =
+                    !settings.game.hardModeMult.on;
                   e.target.innerText = `Hard Mode: ${settings.game.hardModeMult.on}`;
                 },
               ),
               new menuButtonJs(`Walls: ${settings.game.walls}`, (e) => {
-                browsingSettings.game.walls = !browsingSettings.game.walls;
+                settings.game.walls = !settings.game.walls;
                 e.target.innerText = `Walls: ${settings.game.walls}`;
               }),
-              new menuButtonJs("Apply", applySettings),
             ],
             css.mainMenu.buttonDiv,
           );
 
           function changeSettings(textInput, valueToChange, obj) {
-            if (textInput == null || !Number.isFinite(textInput)) {
-              return console.log("Invalid Text");
+            if (
+              textInput == null ||
+              (!Number.isFinite(textInput) && typeof textInput !== "boolean")
+            ) {
+              return console.error(new Error(textInput));
             }
             obj[valueToChange] = textInput;
+
+            localStorage.setItem("settings", JSON.stringify(settings));
           }
         }
 
         function graphicsSettings() {
           css.menuText.innerText = "Graphics Settings";
+          menuButtonJs.id = 0;
           createElements(
             [new menuButtonJs("Back", settingsMenu)],
             css.mainMenu.buttonDiv,
@@ -832,6 +1001,7 @@
 
         function controlSettings() {
           css.menuText.innerText = "Controls";
+          menuButtonJs.id = 0;
           createElements(
             [
               new menuButtonJs("Back", settingsMenu),
@@ -862,7 +1032,7 @@
           Object.entries(currentKeybinds).forEach((element) =>
             tableArr.push([element[0], element[1], "Reset"]),
           );
-
+          menuButtonJs.id = 0;
           //console.log(new tableAssembler("key", tableArr));
           createElements(
             [
@@ -886,6 +1056,7 @@
 
         function languageSettings() {
           css.menuText.innerText = "Language Settings";
+          menuButtonJs.id = 0;
           createElements(
             [new menuButtonJs("Back", settingsMenu)],
             css.mainMenu.buttonDiv,
@@ -894,28 +1065,26 @@
 
         function devSettings() {
           css.menuText.innerText = "Dev Settings";
+          menuButtonJs.id = 0;
           createElements(
             [new menuButtonJs("Back", settingsMenu)],
             css.mainMenu.buttonDiv,
           );
         }
-
-        function applySettings() {
-          settings = browsingSettings;
-          localStorage.setItem("settings", JSON.stringify(settings));
-        }
       }
 
-      function getInputText(e, type) {
+      function getInputText(e, type, reset = true) {
         let textInput = e.target.parentNode.children[1].value;
-        e.target.parentNode.children[1].value = "";
+        if (reset) {
+          e.target.parentNode.children[1].value = "";
+        }
         switch (type) {
           case "Number":
             return isNaN(Number(textInput)) ? null : Number(textInput);
           case "string":
             return textInput;
           default:
-            console.log("needType", type);
+            console.error(new Error(`"${type}" is an invalid Type`));
             return null;
         }
       }
@@ -954,25 +1123,6 @@
         div() {}
       }
 
-      let leaderboardArr = localStorage.getItem("leaderboardArray")
-        ? JSON.parse(localStorage.getItem("leaderboardArray"))
-        : [
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-
-            { name: "-", score: 0 },
-          ];
-
-      console.log(JSON.parse(localStorage.getItem("leaderboardArray")));
-
       function leaderBoardEntry(input) {
         //console.log(input);
         leaderboardArr.push({
@@ -998,11 +1148,14 @@
         css.menuText.innerText = "Leaderboard";
 
         //leaderboardArr.push({ name: "a", score: 1 });
-
+        inputButton.id = 0;
+        menuButtonJs.id = 0;
         createElements(
           [
             new menuButtonJs("Back", mainMenu),
-            
+            new inputButton("Enter Leaderboard", (e) =>
+              leaderBoardEntry(getInputText(e, "string")),
+            ),
             new tableAssembler(
               "leaderboardTable",
               new (function () {
@@ -1086,17 +1239,26 @@
         Snake.angle = 0;
         SnakeSegments = [];
 
+        for (let n = 0; n < tiles.length; n++) {
+          tiles[n].state = "free";
+        }
+
         generateSnakeSegments(Snake.x, Snake.y);
         directionHandler();
         updateDirection();
         manageSnakeSegments(Snake.x, Snake.y);
 
-        Apple.x = 230;
-        Apple.y = 80;
+        Apples =
+          settings.game.apples.count === 1
+            ? [new Apple({ x: 230, y: 80 })]
+            : [
+                new Apple({ x: 210, y: 60 }),
+                new Apple({ x: 250, y: 60 }),
+                new Apple({ x: 230, y: 80 }),
+                new Apple({ x: 210, y: 100 }),
+                new Apple({ x: 250, y: 100 }),
+              ];
 
-        for (let n = 0; n < tiles.length; n++) {
-          tiles[n].state = "free";
-        }
         settings.game.hardModeMult.val = 1;
         tickCounter = 0;
         start = true;
@@ -1109,10 +1271,6 @@
       function generateSnakeSegments(x, y) {
         if ((x - map.start_x) / map.tile_length < Snake.segmentCount) {
           Snake.x += Snake.segmentCount * map.tile_length - map.start_x;
-
-          if (Snake.x >= Apple.x) {
-            Snake.x = Apple.x - map.tile_length;
-          }
 
           let tempSegment = {
             x: Snake.x,
@@ -1290,7 +1448,7 @@
         if (start || (!alive && (tickCounter === 0 || tickCounter >= 10))) {
           return;
         }
-        //start false, alive true
+
         updateloop = setTimeout(
           update,
           (15 * settings.game.speedMult) /
@@ -1305,32 +1463,17 @@
         if (tickCounter >= map.tile_length) {
           updateDirection();
           checkCollision();
-          manageSnakeSegments(Snake.x, Snake.y);
-          updateTiles();
 
-          tickCounter = 0;
-          if (Snake.x === Apple.x && Snake.y === Apple.y) {
+          if (adressTiles(Snake.x, Snake.y, "read").state === "apple") {
             eat();
           } else {
             appleGrow = false;
           }
+          updateTiles();
+          manageSnakeSegments(Snake.x, Snake.y);
 
-          /*console.log(
-                            Object.entries(
-                              tiles.reduce(
-                                (acc, { state }) => ({
-                                  ...acc,
-                                  [state]: (acc[state] || 0) + 1,
-                                }),
-                                {},
-                              ),
-                            )
-                              .map(([state, count]) => `${state}: ${count}`)
-                              .join("\n"),
-                          );
-                          */
+          tickCounter = 0;
         }
-
         tickCounter++;
       }
 
@@ -1444,6 +1587,7 @@
         constructor(x, y) {
           this.x = x;
           this.y = y;
+
           this.angle = Snake.angle;
           this.angle_b;
           this.width = map.tile_length;
@@ -1452,6 +1596,7 @@
           this.srcCoords = this.calcTexture();
           this.img = new Image();
           this.img.src = this.src;
+          adressTiles(x, y, "segment");
         }
         calcTexture() {
           let previousAngle = SnakeSegments[SnakeSegments.length - 1]?.angle;
@@ -1470,9 +1615,6 @@
       }
 
       function manageSnakeSegments(x, y) {
-        if (SnakeSegments.length > 0) {
-          adressTiles(Snake.last.x, Snake.last.y, "segment");
-        }
         SnakeSegments.push(new SnakeSegmentConstructor(x, y));
         if (SnakeSegments.length > Snake.segmentCount) {
           let oldSegment = SnakeSegments.shift();
@@ -1491,26 +1633,61 @@
         adressTiles(Snake.x, Snake.y, "head");
       }
 
+      class Apple {
+        constructor(pos) {
+          if (!pos) {
+            let freeTiles = tiles.filter((tileObj) => tileObj.state === "free");
+            pos = freeTiles[Math.floor(Math.random() * freeTiles.length)];
+            this.x = pos.x + map.start_x;
+            this.y = pos.y + map.start_y;
+          } else {
+            this.x = pos.x;
+            this.y = pos.y;
+          }
+          this.width = map.tile_length;
+          this.height = map.tile_length;
+          this.angle = 0;
+          this.src = "../textures/Strawberry.png";
+          this.srcCoords = { x: 0, y: 0 };
+          this.img = new Image();
+          this.img.src = this.src;
+
+          adressTiles(this.x, this.y, "apple");
+        }
+      }
+
       function eat() {
+        Apples = Apples.filter((element, index) =>
+          element.x === Snake.x && element.y === Snake.y ? false : true,
+        );
+
         Snake.segmentCount++;
         appleGrow = true;
         document.getElementById("score").textContent =
           (Snake.segmentCount - Snake.startSegmentCount) /
           settings.game.speedMult;
 
-        let freeTiles = tiles.filter(
-          (tileObj) => tileObj.state === "free" && tileObj.state !== "head",
-        );
-
-        if (freeTiles.length === 0) {
+        if (
+          tiles.filter(
+            (tileObj) => tileObj.state === "free" || tileObj.state === "apple",
+          ).length === 1
+        ) {
           alert("U WIN!!!");
           alive = false;
-          Apple.x *= -1;
+          Apples = [];
         } else {
-          let newAppleTile =
-            freeTiles[Math.floor(Math.random() * freeTiles.length)];
-          Apple.x = newAppleTile.x + map.start_x;
-          Apple.y = newAppleTile.y + map.start_y;
+          if (
+            tiles.filter((tileObj) => tileObj.state === "free").length !== 0
+          ) {
+            Apples.push(new Apple(null));
+            if (
+              tiles.filter((tileObj) => tileObj.state === "free").length !==
+                0 &&
+              settings.game.apples.hydra
+            ) {
+              Apples.push(new Apple(null));
+            }
+          }
         }
         if (settings.game.hardModeMult.val < 2 && true) /*hard mode is on*/ {
           settings.game.hardModeMult.val += 0.04;
@@ -1542,6 +1719,7 @@
         start = false;
         Snake.nextAngle = "none";
         mainMenu();
+        menuButtonJs.id = 0;
         createElements(
           [
             new menuButtonJs("Main Menu", function () {
@@ -1549,7 +1727,7 @@
               pauseGame();
               mainMenu();
             }),
-            new inputButton("Enter Leaderboard", (e) =>
+            new inputButton("LeaderBoardEntry", (e) =>
               leaderBoardEntry(getInputText(e, "string")),
             ),
             new menuButtonJs("New Game", newGame),
@@ -1610,20 +1788,17 @@
           y: 0,
           angle: SnakeSegments[SnakeSegments.length - 2].angle,
         });
-        rotate(Apple);
+
+        Apples.forEach((element) => {
+          rotate(element);
+        });
+
         ctx.fillStyle = "#FF6A00";
         rotate(Snake);
         if (!appleGrow) {
           move(SnakeSegments[0]);
         }
-        /*
-              ctx.fillRect(
-                touch.lastpos.x / (deviceInfo.width / canvas.width),
-                touch.lastpos.y / ((deviceInfo.height - 2000) / canvas.height),
-                settings.controls.swipeThreshold.val,
-                settings.controls.swipeThreshold.val,
-              );
-              */
+
         let aspectRatioRatio =
           canvas.width / canvas.height / (deviceInfo.width / deviceInfo.height);
 
@@ -1660,67 +1835,67 @@
           );
         }
         requestAnimationFrame(draw);
-      }
 
-      function rotate(
-        imgObj,
-        extraObj = {
-          x: imgObj.srcCoords.x,
-          y: imgObj.srcCoords.y,
-          angle: imgObj.angle,
-        },
-      ) {
-        ctx.save();
-        ctx.translate(imgObj.x, imgObj.y);
-        ctx.rotate((extraObj.angle * Math.PI) / 180);
-        ctx.translate(
-          extraObj.angle >= 180 ? -1 * map.tile_length : 0,
-          extraObj.angle <= 180 && extraObj.angle !== 0
-            ? -1 * map.tile_length
-            : 0,
-        );
-
-        ctx.scale(
-          imgObj.height / map.tile_length,
-          imgObj.width / map.tile_length,
-        );
-        ctx.translate(
-          imgObj.height < 0 ? imgObj.height : 0,
-          imgObj.width < 0 ? imgObj.width : 0,
-        );
-        if (imgObj === Snake) {
-          ctx.fillRect(7, 1, -tickCounter, 8);
-        }
-        if (imgObj === SnakeSegments[0]) {
-          ctx.fillRect(
-            3,
-            1,
-            appleGrow ? -map.tile_length : tickCounter - map.tile_length,
-            8,
+        function rotate(
+          imgObj,
+          extraObj = {
+            x: imgObj.srcCoords.x,
+            y: imgObj.srcCoords.y,
+            angle: imgObj.angle,
+          },
+        ) {
+          ctx.save();
+          ctx.translate(imgObj.x, imgObj.y);
+          ctx.rotate((extraObj.angle * Math.PI) / 180);
+          ctx.translate(
+            extraObj.angle >= 180 ? -1 * map.tile_length : 0,
+            extraObj.angle <= 180 && extraObj.angle !== 0
+              ? -1 * map.tile_length
+              : 0,
           );
+
+          ctx.scale(
+            imgObj.height / map.tile_length,
+            imgObj.width / map.tile_length,
+          );
+          ctx.translate(
+            imgObj.height < 0 ? imgObj.height : 0,
+            imgObj.width < 0 ? imgObj.width : 0,
+          );
+          if (imgObj === Snake) {
+            ctx.fillRect(7, 1, -tickCounter, 8);
+          }
+          if (imgObj === SnakeSegments[0]) {
+            ctx.fillRect(
+              3,
+              1,
+              appleGrow ? 0 : tickCounter - map.tile_length,
+              8,
+            );
+          }
+
+          ctx.drawImage(
+            imgObj.img,
+            extraObj.x,
+            extraObj.y,
+            map.tile_length,
+            map.tile_length,
+            0,
+            0,
+            map.tile_length,
+            map.tile_length,
+          );
+
+          ctx.restore();
         }
-
-        ctx.drawImage(
-          imgObj.img,
-          extraObj.x,
-          extraObj.y,
-          map.tile_length,
-          map.tile_length,
-          0,
-          0,
-          map.tile_length,
-          map.tile_length,
-        );
-
-        ctx.restore();
       }
 
       /*TODO
-                           leaderboard
+                           leaderboard (global)
 
                            win (death) menu
 
-                          settings + cookies
+
 
                           sub settings menu (dev, textures,...)
 
