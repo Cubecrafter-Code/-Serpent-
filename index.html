@@ -1260,7 +1260,7 @@
                 new Apple({ x: 250, y: 100 }),
               ];
 
-        for (let n = 0; n < 100; n++) {
+        for (let n = 0; n < 75; n++) {
           Apples.push(new Apple(null));
         }
 
@@ -1586,7 +1586,13 @@
 
       function checkCollision() {
         checkBodyCollision = () => {
-          if (adressTiles(Snake.x, Snake.y, "read").state === "segment") {
+          if (
+            adressTiles(Snake.x, Snake.y, "read").state === "segment" &&
+            !(
+              Snake.x === SnakeSegments[0].last.x &&
+              Snake.y === SnakeSegments[0].last.y
+            )
+          ) {
             dead();
           }
         };
@@ -1667,10 +1673,8 @@
           adressTiles(
             oldSegment?.last === undefined ? oldSegment.x : oldSegment.last.x,
             oldSegment?.last === undefined ? oldSegment.y : oldSegment.last.y,
-            "free", //removeoldSegment
+            "free",
           );
-
-          adressTiles(SnakeSegments[0].x, SnakeSegments[0].y, "free"); //state: "tail"
         }
       }
 
