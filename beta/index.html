@@ -547,7 +547,7 @@
       );
 
       async function defineSettings() {
-        let Json = await (await fetch("default/settings.JSON")).json();
+        let Json = await (await fetch(`${path}default/settings.JSON`)).json();
 
         if (
           typeof settings !== "object" &&
