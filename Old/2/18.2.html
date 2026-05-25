@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schlange</title>
+    <canvas id="canvas1" width="320" height="180"></canvas>
+    <div id ="scoreText">Punktzahl</div>
+    <div id ="score">0</div>
+    <style>
+        html, body {
+            margin: 0;
+            padding:0;
+            overflow: hidden;
+        }
+    canvas{
+        background-color: rgb(0, 0, 0, 0.8);
+        width: 100vw;
+        height: 100vh;
+        object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;}
+    
+    #scoreText {
+        position: absolute;
+        left: 5px;
+        top: 10px;
+        font-size: 48px;
+        color: aqua;
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px aqua;
+    }
+
+    #score {
+        position: absolute;
+        left: 5px;
+        top: 50px;
+        font-size: 48px;
+        color: aqua;
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px aqua;
+    }
+    </style>
+    
+</head>
+<body onload="Game()">
+    <script>
+        let speedMult = prompt("Was soll der Geschwindigkeitsmultiplikator sein?");
+        isNaN(Number(speedMult)) || speedMult == 0? speedMult = 1 : speedMult = 1 / Number(speedMult);
+        let Key = {};
+        
+        let a = 1;
+        let i = 0;
+        let alive = true;
+        let directionChange;
+
+        let map = {
+            start_x: 40,
+            start_y: 10,
+            width: 240,
+            height: 160,
+            tile_length: 10,
+            appleCout: 2
+        }
+
+        let canvas;
+        let ctx;
+        let backgroundImage = new Image();
+        let bufferDirection
+        let Snake = {
+            x: 80,
+            y: 80,
+            direction : "right",
+            bufferDirection: "right",
+            lastDirection : "right",
+            segmentCount : 3,
+            width: map.tile_length,
+            height: map.tile_length,
+            src: '../textures/Arrows.png'
+        };
+        let SnakeSegments = [];
+
+
+        let tiles = [];
+                for(let b = 0; b < map.width / map.tile_length; b++){
+                    for(let c = 0; c < map.height / map.tile_length; c++){
+                    let tileObj = {
+                        name : `tileObj_${b}_${c}`,
+                        x : b * map.tile_length,
+                        y : c * map.tile_length,
+                        state : "free"
+            }
+                tiles.push(tileObj);
+                }}
+
+
+        let tile = {
+                    x: Snake.x,
+                    y: Snake.y,
+                    width: map.tile_length,
+                    height: map.tile_length,
+                    src: '../textures/Segment.png'
+        }
+        let Apples = [];
+        let Apple = {
+            x: 230,
+            y: 80,
+            width: map.tile_length,
+            height: map.tile_length,
+            src: '../textures/Strawberry.png'
+        };        
+
+        document.onkeydown = function(e) {
+            if(e.repeat === false){
+                
+            if(e.Key === "w" || "a" || "s" || "d"){
+                Key.w = false;
+                Key.a = false;
+                Key.s = false;
+                Key.d = false;
+            }
+            keyHandler(e.key, "down")
+        }}
+
+        document.onkeyup = function(e) {
+            keyHandler(e.key, "up")
+        }
+
+        function keyHandler(inputKey, state){
+            //console.log(inputKey);
+            let outputKey = inputKey;
+            if(inputKey === "ArrowUp" || inputKey === "ArrowLeft" || inputKey === "ArrowDown" || inputKey === "ArrowRight"){
+                    let arrowKey = inputKey
+                    switch(arrowKey){
+                        case "ArrowUp":
+                            outputKey = "w";
+                            break;
+                        case "ArrowLeft":
+                            outputKey = "a";
+                            break;
+                        case "ArrowDown":
+                            outputKey = "s";
+                            break;
+                        case "ArrowRight":
+                            outputKey = "d";
+                            break; }
+                }
+            Key[outputKey] = state === "down" ?  true : state === "up" ? false : console.log("invalid state - keyHandler");
+            miscKeybinds(outputKey, state);
+            //console.log(`${outputKey} : ${Key[outputKey]}`)   
+        }
+
+        function miscKeybinds(inputKey, state){
+            if(state === "down"){
+                if(Key["+"]){
+                Snake.segmentCount += 5
+            }
+            if(Key.Escape){
+                    alert(`Pausiert Punktzahl: ${Snake.segmentCount - 3}`)
+                    Key.Escape = false;
+                }
+            if(Key.L){
+                console.log(tiles);
+            }
+            if(Key.P){Snake.direction = "none"}
+
+
+            
+            
+        }
+        else{}
+    };
+
+
+
+
+
+        function Game() {
+        
+        canvas = document.getElementById('canvas1');
+        ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        setInterval(update, 15 * speedMult/* * (.5 ** (Snake.segmentCount - 3))*/);
+        loadImages();
+        draw();
+
+        
+
+        function update(){
+            if(alive === false){return};
+            updateDirection();
+            //if(Snake.direction !== "none"){
+                move(Snake.lastDirection);
+
+            if(i === 10){
+        checkCollision()}
+
+            if(i >= map.tile_length){
+                manageSnakeSegments(tile.x, tile.y);
+                updateTiles();
+                i = 0
+                if(tile.x === Apple.x && tile.y === Apple.y){
+                    eat();
+                }
+                else{};
+            }
+        }
+  
+        function updateDirection(){
+                let allowDirectionChange = true;
+                let bufferDirection = Snake.direction;
+                if(Key.w === true){
+                    Snake.direction = "up";
+                }
+                if(Key.s === true){
+                    Snake.direction = "down";
+                }
+                if(Key.a === true){
+                    Snake.direction = "left";
+                }
+                if(Key.d === true){
+                    Snake.direction = "right";
+                }
+       switch(Snake.direction){
+        case "up":
+            if(Snake.lastDirection === "down"){
+                allowDirectionChange = false;
+            }
+            break;
+        case "left":
+            if(Snake.lastDirection === "right"){
+                allowDirectionChange = false;
+            }
+            break;
+        case "down":
+            if(Snake.lastDirection === "up"){
+                allowDirectionChange = false;
+            }
+            break;
+        case "right":
+            if(Snake.lastDirection === "left"){
+                allowDirectionChange = false;
+            }
+            break;
+       }
+       if(bufferDirection !== Snake.direction){
+        if(directionChange){
+            Snake.bufferDirection = bufferDirection;
+        }
+        else{directionChange = true};
+       }
+        if(i === 0){
+            if(directionChange){if(Snake.direction === Snake.lastDirection || allowDirectionChange === false){
+                    Snake.lastDirection = Snake.bufferDirection;
+                    allowDirectionChange = false;
+                    Snake.bufferDirection}}
+            if(allowDirectionChange){
+               Snake.lastDirection = Snake.direction;
+               Snake.bufferDirection = Snake.lastDirection;
+            }
+            directionChange = false;
+        }
+    }
+
+        function move (direction){
+            i++;
+            switch(direction){
+                case "up": 
+                    Snake.y = tile.y - i;
+                    Snake.x = tile.x;
+                    a = 0;
+                    break;
+
+                case "down":
+                    Snake.y = tile.y + i;
+                    Snake.x = tile.x;
+                    a = 1;
+                    break;
+                
+                case "left":
+                    Snake.x = tile.x - i;
+                    Snake.y = tile.y;
+                    a = 2;
+                    break;
+                case "right":
+                    Snake.x = tile.x + i;
+                    Snake.y = tile.y;
+                    a = 3;
+                    break;
+                default:
+                    //console.log("no movement direction");
+                    Snake.direction = "none";  
+                    Snake.x = tile.x;
+                    Snake.y = tile.y;
+            }
+        }
+
+        function checkCollision(){
+            /*if(Snake.x > map.start_x + map.width - map.tile_length || Snake.x < map.start_x || Snake.y > map.start_y + map.height - map.tile_length || Snake.y < map.start_y){
+                    dead();
+            }*/
+            
+            if(Snake.x > map.start_x + map.width - map.tile_length){Snake.x -= map.width}
+            if(Snake.x < map.start_x){Snake.x += map.width}
+            if(Snake.y > map.start_y + map.height - map.tile_length){Snake.y -= map.height}
+            if(Snake.y < map.start_y){Snake.y += map.height}
+
+            if(adressTiles(Snake.x, Snake.y, "read").state === "segment"){
+                dead();
+            }
+              
+        }
+
+        function manageSnakeSegments(x, y) {
+            if(Snake.direction !== "none"){
+                let SnakeSegment = {
+                    x: x,
+                    y: y,
+                    width: map.tile_length,
+                    height: map.tile_length,
+                    src: '../textures/Segment.png', 
+                    img: new Image()
+                };
+                SnakeSegment.img.src = SnakeSegment.src
+                SnakeSegments.push(SnakeSegment);
+                adressTiles(x, y, "segment");
+            
+                if(SnakeSegments.length > Snake.segmentCount){
+                    let oldSegment = SnakeSegments.shift();
+                    //console.log(oldSegment);
+                    adressTiles(oldSegment.x, oldSegment.y , "free")
+                }
+            }
+            else{
+                //console.log("no Direction, no new Segment");
+            }
+        }
+        
+        function updateTiles(){
+                tile.x = Snake.x;
+                tile.y = Snake.y;
+                adressTiles(tile.x, tile.y, "head");
+        }
+        
+        function eat(){
+            Snake.segmentCount++;
+            document.getElementById("score").textContent = (Snake.segmentCount - 3) / speedMult;
+            let freeTiles = tiles.filter((tileObj) => tileObj.state === "free");
+            let newAppleTile = freeTiles[Math.ceil(Math.random() * freeTiles.length)];
+            Apple.x = newAppleTile.x + map.start_x;
+            Apple.y = newAppleTile.y + map.start_y;
+        }
+
+        function adressTiles(x, y, state){//xy in px
+            let targetTile = tiles[(x - map.start_x) / map.tile_length * map.height / map.tile_length + (y - map.start_y) / map.tile_length];
+            if(state === "read"){
+                return targetTile;
+            }
+            else{
+            targetTile.state = state;
+        }}
+        
+        function dead(){
+            Snake.x = tile.x;
+            Snake.y = tile.y;
+            alive = false;
+            Snake.direction = "none";
+            console.log("dead");
+            alert(`You ate: ${Snake.segmentCount - 3} Apples`)
+        }
+
+        function loadImages() {
+            backgroundImage.src = '../textures/BackgroundCopy.png';
+            Snake.img = new Image();
+            Snake.img.src = Snake.src;
+            tile.img = new Image();
+            tile.img.src = tile.src;
+            Apple.img = new Image();
+            Apple.img.src = Apple.src;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(backgroundImage, 0, 0);            
+            SnakeSegments.forEach(function(SnakeSegment) {
+                ctx.drawImage(SnakeSegment.img, SnakeSegment.x, SnakeSegment.y, SnakeSegment.width, SnakeSegment.height)
+        })
+        //a = 0;
+            ctx.drawImage(Apple.img, 
+            /*a * map.tile_length*/ 0, 0,
+            map.tile_length, map.tile_length,
+            Apple.x, Apple.y, 
+            Apple.width, Apple.height);
+            ctx.drawImage(tile.img, tile.x, tile.y, tile.width, tile.height);
+            ctx.drawImage(Snake.img,
+            //10, 20, //x, y pic
+            a * map.tile_length, 0,
+            map.tile_length, map.tile_length, //w, h pic
+            Snake.x, Snake.y, //x, y pos
+            map.tile_length, map.tile_length);
+            requestAnimationFrame(draw);
+        }}
+        /*
+        wände togglebar machen
+        */
+    </script>
+</body>
+</html>

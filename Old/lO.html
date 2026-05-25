@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hybrid Lights Out</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #ecf0f1;
+        padding-top: 30px;
+      }
+
+      #game-board {
+        display: grid;
+        grid-template-columns: repeat(5, 65px);
+        grid-gap: 8px;
+        background: #95a5a6;
+        padding: 15px;
+        border-radius: 4px;
+      }
+
+      .cell {
+        width: 65px;
+        height: 65px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: background-color 0.2s;
+      }
+
+      /* The Light States (Background) */
+      .light-on {
+        background-color: #f1c40f;
+      } /* Yellow */
+      .light-off {
+        background-color: #7f8c8d;
+      } /* Gray */
+
+      /* The Marker (The Black Box inside) */
+      .marked::after {
+        content: "";
+        width: 20px;
+        height: 20px;
+        background-color: #000;
+        border-radius: 2px;
+      }
+
+      #status {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+      button {
+        margin-top: 15px;
+        padding: 10px 20px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Hybrid Lights Out</h2>
+    <p>Yellow/Gray = Light State | Black Box = Your Clicks</p>
+
+    <div id="game-board"></div>
+    <div id="status">Turn off all yellow lights!</div>
+    <button onclick="setupGame()">New Game / Shuffle</button>
+
+    <script>
+      const SIZE = 5;
+      const boardElement = document.getElementById("game-board");
+      const statusElement = document.getElementById("status");
+      let grid = [];
+
+      function setupGame() {
+        grid = [];
+        boardElement.innerHTML = "";
+        statusElement.textContent = "Goal: All Gray, No Yellow!";
+
+        for (let r = 0; r < SIZE; r++) {
+          grid[r] = [];
+          for (let c = 0; c < SIZE; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell light-off";
+            cell.onclick = () => handleCellClick(r, c);
+            boardElement.appendChild(cell);
+
+            grid[r][c] = {
+              element: cell,
+              isLightOn: false,
+              isMarked: false,
+            };
+          }
+        }
+        /*handleCellClicks(0, 1);
+        handleCellClicks(0, 3);
+        handleCellClicks(1, 2);
+        handleCellClicks(2, 1);
+        handleCellClicks(2, 3);
+        handleCellClicks(3, 0);
+
+        handleCellClicks(3, 1);
+
+        handleCellClicks(3, 3);
+        handleCellClicks(3, 4);
+        handleCellClicks(4, 1);
+        handleCellClicks(4, 2);
+        handleCellClicks(4, 3);*/
+        function handleCellClicks(c, r) {
+          handleCellClick(r, c, false);
+        }
+        toggleLight(0, 0);
+        toggleLight(0, 4);
+
+        toggleLight(1, 3);
+
+        toggleLight(2, 0);
+        toggleLight(2, 2);
+        toggleLight(2, 3);
+
+        toggleLight(3, 0);
+        toggleLight(3, 3);
+        toggleLight(3, 4);
+
+        toggleLight(4, 2);
+        toggleLight(4, 3);
+
+        toggleLight(4, 4);
+      }
+
+      function handleCellClick(r, c, s = true) {
+        // 1. Toggle Lights in the CROSS pattern
+        toggleLight(r, c); // Center
+        toggleLight(r - 1, c); // Top
+        toggleLight(r + 1, c); // Bottom
+        toggleLight(r, c - 1); // Left
+        toggleLight(r, c + 1); // Right
+
+        // 2. Toggle Marker ONLY on the clicked cell
+        if (s) {
+          toggleMarker(r, c);
+        }
+
+        checkWin();
+      }
+
+      function toggleLight(r, c) {
+        if (r >= 0 && r < SIZE && c >= 0 && c < SIZE) {
+          const cell = grid[r][c];
+          cell.isLightOn = !cell.isLightOn;
+          updateVisuals(r, c);
+        }
+      }
+
+      function toggleMarker(r, c) {
+        const cell = grid[r][c];
+        cell.isMarked = !cell.isMarked;
+        updateVisuals(r, c);
+      }
+
+      function updateVisuals(r, c) {
+        const cell = grid[r][c];
+        // Handle Background
+        cell.element.classList.toggle("light-on", cell.isLightOn);
+        cell.element.classList.toggle("light-off", !cell.isLightOn);
+        // Handle Black Box Marker
+        cell.element.classList.toggle("marked", cell.isMarked);
+      }
+
+      function shuffle() {
+        // Click 15 random spots to scramble the board
+        for (let i = 0; i < 15; i++) {
+          let r = Math.floor(Math.random() * SIZE);
+          let c = Math.floor(Math.random() * SIZE);
+          handleCellClick(r, c);
+        }
+      }
+
+      function checkWin() {
+        const lightsOut = grid.flat().every((cell) => !cell.isLightOn);
+        if (lightsOut) {
+          statusElement.textContent = "🏆 All lights are out!";
+        }
+      }
+
+      setupGame();
+    </script>
+  </body>
+</html>

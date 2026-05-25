@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schlange</title>
+    <canvas id="canvas1" width="320" height="180"></canvas>
+    <style>
+        html, body {
+            margin: 0;
+            padding:0;
+            overflow: hidden;
+        }
+    canvas{
+        background-color: rgb(0, 0, 0, 0.8);
+        width: 1920px;   
+        height: 1080px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;}
+    </style>
+    <script>
+        let Key = {}
+
+        let a = 1;
+        let i = 0;
+//        let isGoingHorizontal = true;
+        let alive = true;
+
+        let map = {
+            start_x : 40,
+            start_y : 10,
+            width: 240,
+            height: 160,
+            tile_length : 10
+        }
+
+        let canvas;
+        let ctx;
+        let backgroundImage = new Image();
+
+        let Snake = {
+        x: 80,
+        y: 80,
+        direction : "right",
+        lastDirection : "right",
+        segmentCount : 3,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: '../textures/Arrows.png'
+        };
+        let SnakeSegments = [];
+
+        //let 
+        let tiles = [];
+                for(let b = 0; b < map.width / map.tile_length; b++){
+                    for(let c = 0; c < map.height / map.tile_length; c++){
+                    let tileObj = {
+                        name : `tileObj_${b}_${c}`,
+                        x : b * map.tile_length,
+                        y : c * map.tile_length,
+                        state : "free"
+            }
+                tiles.push(tileObj);
+                }}
+        console.log(tiles);
+
+
+        let tile = {
+                    x: Snake.x,
+                    y: Snake.y
+        }
+        
+        let Apple = {
+        x: 230,
+        y: 80,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: '../textures/Strawberry.png'
+        };        
+
+        document.onkeydown = function(e) {
+            if(e.repeat === false){
+            if(e.Key === "w" || "a" || "s" || "d"){
+                Key.w = false;
+                Key.a = false;
+                Key.s = false;
+                Key.d = false;
+            }
+            keyHandler(e, "down")
+        }}
+
+        document.onkeyup = function(e) {
+            keyHandler(e, "up")
+        }
+
+        function keyHandler(e, state){
+            Key[e.key] = state === "down" ?  true : state === "up" ? false : console.log("invalid state - keyHandler")
+            //console.log(`${e.key} : ${Key[e.key]}`)   
+        }
+
+
+
+
+
+        function Game() {
+        canvas = document.getElementById('canvas1');
+        ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        setInterval(update, 15);
+        loadImages();
+        draw();
+
+        
+
+        function update(){
+            if(alive === false){
+                return
+            };
+            /*if(Key.f){
+                console.log(SnakeSegments);
+            }*/
+            updateDirection();
+            //if(Snake.direction !== "none"){
+                move(Snake.lastDirection)
+             
+            if(i <= 1){
+                Snake.lastDirection = Snake.direction;
+            }
+            if(i === 2){
+            if(Snake.x > map.start_x + map.width - map.tile_length || Snake.x < map.start_x || Snake.y > map.start_y + map.height - map.tile_length || Snake.y < map.start_y){
+                Snake.x = tile.x;
+                Snake.y = tile.y;
+                    dead();
+            }}
+            if(i >= map.tile_length){
+                manageSnakeSegments(tile.x, tile.y);
+                
+                updateTiles();
+                
+                i = 0
+                if(tile.x === Apple.x && tile.y === Apple.y){
+                    
+                    eat();
+                }
+            }
+            
+        }
+
+        function updateDirection(){
+                if(Key.Enter){
+                    Snake.lastDirection = "none";
+                    console.log(tiles)
+                    //adressTiles(50, 50, "snake")
+                    //console.log(tiles);
+                }
+                
+            let isGoingHorizontal = Snake.lastDirection === "left" || Snake.lastDirection === "right" ? true : false;
+            if(isGoingHorizontal){
+                if(Key.w === true){
+                    Snake.direction = "up";
+                }
+                if(Key.s === true){
+                    Snake.direction = "down";
+                }
+            }
+            else{
+                if(Key.a === true){
+                    Snake.direction = "left";
+                }
+                if(Key.d === true){
+                    Snake.direction = "right";
+                }   
+        }}
+
+        function move (direction){
+            i++;
+            switch(direction){
+                case "up": 
+                    Snake.y = tile.y - i;
+                    Snake.x = tile.x;
+                    a = 0;
+                    break;
+
+                case "down":
+                    Snake.y = tile.y + i;
+                    Snake.x = tile.x;
+                    a = 1;
+                    break;
+                
+                case "left":
+                    Snake.x = tile.x - i;
+                    Snake.y = tile.y;
+                    a = 2;
+                    break;
+                case "right":
+                    Snake.x = tile.x + i;
+                    Snake.y = tile.y;
+                    a = 3;
+                    break;
+                default:
+                    //console.log("no movement direction");
+                    Snake.direction = "none";  
+                    Snake.x = tile.x;
+                    Snake.y = tile.y;
+            }
+        }
+
+        function manageSnakeSegments(x, y) {
+            if(Snake.direction !== "none"){
+                let SnakeSegment = {
+                    x: x,
+                    y: y,
+                    width: map.tile_length,
+                    height: map.tile_length,
+                    src: '../textures/Segment.png', 
+                    img: new Image()
+                };
+                SnakeSegment.img.src = SnakeSegment.src
+                SnakeSegments.push(SnakeSegment);
+                adressTiles(x, y, "segment");
+                //tiles[x, y].state = Snake idk why tf ts was here
+
+
+                if(SnakeSegments.length > Snake.segmentCount){
+                    let oldSegment = SnakeSegments.shift();
+                    //console.log(oldSegment);
+                    adressTiles(oldSegment.x, oldSegment.y , "free")
+                }
+            }
+            else{
+                //console.log("no Direction, no new Segment");
+            }
+        }
+        function updateTiles(){
+                tile.x = Snake.x;
+                tile.y = Snake.y;
+                adressTiles(tile.x, tile.y, "head");
+        }
+        
+        function eat(){
+            Snake.segmentCount++;
+            let freeTiles = tiles.filter((tileObj) => tileObj.state === "free");
+            //console.log(freeTiles.length);
+            //console.log(freeTiles[Math.floor(Math.random() * freeTiles.length)]);
+            let newAppleTile = freeTiles[Math.ceil(Math.random() * freeTiles.length)];
+            //console.log(`newAppleTile: ${newAppleTile.x}x ${newAppleTile.y}y`);
+            Apple.x = newAppleTile.x + map.start_x;
+            Apple.y = newAppleTile.y + map.start_y;
+        }
+
+        function adressTiles(x, y, state){//xy in px
+            let targetTile = tiles[(x - map.start_x) / map.tile_length * map.height / map.tile_length + (y - map.start_y) / map.tile_length];
+            if(state === "head" && targetTile.state !== "free"){
+                /*console.log(targetTile);
+                console.log(tiles);
+                console.log(Snake);*/
+                Snake.x = tile.x;
+                Snake.y = tile.y;
+                dead();
+            }
+            else{
+            targetTile.state = state;
+            //console.log(targetTile);
+            }
+        }    
+        
+        function dead(){
+            alive = false;
+            Snake.direction = "none";
+            console.log("dead");
+            alert(`You Died with a score of: ${Snake.segmentCount - 3}`)
+        }
+
+        function loadImages() {
+            backgroundImage.src = '../textures/Background.png';
+            Snake.img = new Image();
+            Snake.img.src = Snake.src;
+            Apple.img = new Image();
+            Apple.img.src = Apple.src;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(backgroundImage, 0, 0);
+            //ctx.drawImage(Snake.img, Snake.x, Snake.y, Snake.width, Snake.height);
+            
+            SnakeSegments.forEach(function(SnakeSegment) {
+                ctx.drawImage(SnakeSegment.img, SnakeSegment.x, SnakeSegment.y, SnakeSegment.width, SnakeSegment.height)
+        })
+        //a = 0;
+            ctx.drawImage(Apple.img, 
+            /*a * map.tile_length*/ 0, 0,
+            map.tile_length, map.tile_length,
+            Apple.x, Apple.y, 
+            Apple.width, Apple.height);
+            requestAnimationFrame(draw);
+            ctx.drawImage(Snake.img,
+            //10, 20, //x, y pic
+            a * map.tile_length, 0,
+            map.tile_length, map.tile_length, //w, h pic
+            Snake.x, Snake.y, //x, y pos
+            map.tile_length, map.tile_length);//w, h //should be as in pic
+        }}
+        
+    </script>
+</head>
+<body onload="Game()">
+    <canvas id="canvas1"  width="1920" height="1080"></canvas>
+</body>
+</html>

@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schlange</title>
+    <canvas id="canvas1" width="320" height="180"></canvas>
+
+    <div class="scoreText" id="scoreBox">
+      <header class="scoreText">Punktzahl:</header>
+      <p class="scoreText" id="score">0</p>
+    </div>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      canvas {
+        background-color: #3f2800;
+        width: var(--screenWidth);
+        height: var(--screenHeight);
+        object-fit: contain;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+
+      .scoreText {
+        top: 10px;
+        position: absolute;
+        width: fit-content;
+        font-size: 42px;
+        color: aqua;
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px aqua;
+        margin: 0;
+      }
+
+      #scoreBox {
+        position: absolute;
+        left: 10px;
+      }
+
+      #score {
+        top: 50px;
+      }
+    </style>
+  </head>
+  <body onload="Game()">
+    <div class="menu" id="mainMenu">
+      <header id="menuText">Hi</header>
+      <div id="buttonDiv"><button></button></div>
+    </div>
+    <style>
+      [hidden] {
+        display: none !important;
+      }
+      .menu {
+        position: absolute;
+        width: var(--menuButtonWidth);
+        left: var(--menuLeft);
+        top: 100px;
+
+        background-color: red;
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        font-size: 48px;
+        font: bold;
+        color: black;
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px black;
+
+        height: 75%;
+        border-radius: 20px;
+        pointer-events: all;
+
+        border-style: solid;
+        border-color: rgba(0, 0, 255, 0.5);
+        border-width: 10px;
+      }
+
+      #buttonDiv {
+        overflow-y: auto;
+        flex: 1;
+        pointer-events: all;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #menuText {
+        position: sticky;
+        margin-top: 25px;
+      }
+
+      .menuButton {
+        padding: 10px;
+        font-size: 48px;
+        height: fit-content;
+        background-color: aqua;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
+        margin: 10px;
+
+        pointer-events: all;
+      }
+    </style>
+    <script>
+      let deviceInfo = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        resulutionMult:
+          screen.height / document.getElementById("canvas1").height,
+        aspectRatio: screen.width / screen.height,
+      };
+
+      let css = {
+        mainMenu: document.getElementById("mainMenu"),
+        menuText: document.getElementById("menuText"),
+        menuButtons: document.getElementsByClassName("menuButton"),
+      };
+
+      css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
+      console.log(css.mainMenu.buttonDiv);
+      document.documentElement.style.setProperty(
+        "--screenWidth",
+        deviceInfo.width + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--screenHeight",
+        deviceInfo.height + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--menuButtonWidth",
+        "500" + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--menuLeft",
+        calcMiddle(deviceInfo.width, css.mainMenu.offsetWidth) + "px",
+      );
+      console.log(
+        calcMiddle(deviceInfo.width, css.mainMenu.offsetWidth) + "px",
+        deviceInfo.width,
+        css.mainMenu.offsetWidth,
+      );
+      /*
+      document.documentElement.style.setProperty(
+        "--menuContentLeft",
+        calcMiddle(css.mainMenu, css.menuButton0) + "px",
+      );
+
+      document.documentElement.style.setProperty(
+        "--menuButtonLeft",
+        calcMiddle(
+          css.mainMenu.offsetWidth,
+          css.menuButtons.menuButton0.offsetWidth,
+        ) + "px",
+      );*/
+      function calcMiddle(x, offset) {
+        return (x - offset) / 2;
+      }
+
+      let hardModeMult;
+      let speedMult = 1 / Number(localStorage.getItem("speedMult"));
+      isNaN(Number(speedMult)) || Number(speedMult) === 0
+        ? (speedMult = 1)
+        : (speedMult = 1 / Number(speedMult));
+      let Key = {};
+
+      let a = 3;
+      let i = 0;
+      let alive = false;
+      let start = false;
+      let directionChange;
+
+      let map = {
+        start_x: 40,
+        start_y: 10,
+        width: 240,
+        height: 160,
+        tile_length: 10,
+        appleCout: 2,
+      };
+
+      let canvas;
+      let ctx;
+      let backgroundImage = new Image();
+      let bufferDirection;
+      let Snake = {
+        x: 80,
+        y: 80,
+        direction: "right",
+        bufferDirection: "right",
+        lastDirection: "right",
+        segmentCount: 3,
+        //startSegmentCount,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: "../textures/Arrows.png",
+      };
+      Snake.startSegmentCount = Snake.segmentCount;
+      let SnakeSegments = [];
+
+      let tiles = [];
+      for (let b = 0; b < map.width / map.tile_length; b++) {
+        for (let c = 0; c < map.height / map.tile_length; c++) {
+          let tileObj = {
+            name: `tileObj_${b}_${c}`,
+            x: b * map.tile_length,
+            y: c * map.tile_length,
+            state: "head",
+          };
+          tiles.push(tileObj);
+        }
+      }
+
+      let tile = {
+        x: Snake.x,
+        y: Snake.y,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: "../textures/Segment.png",
+      };
+      let Apples = [];
+      let Apple = {
+        x: 230,
+        y: 80,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: "../textures/Strawberry.png",
+      };
+
+      document.onkeydown = function (e) {
+        if (e.repeat === false) {
+          if (e.Key === "w" || "a" || "s" || "d") {
+            Key.w = false;
+            Key.a = false;
+            Key.s = false;
+            Key.d = false;
+          }
+          keyHandler(e.key, "down");
+        }
+      };
+
+      document.onkeyup = function (e) {
+        keyHandler(e.key, "up");
+      };
+
+      function keyHandler(inputKey, state) {
+        if (start) {
+          alive = true;
+          start = false;
+        }
+
+        let outputKey = inputKey;
+        if (
+          inputKey === "ArrowUp" ||
+          inputKey === "ArrowLeft" ||
+          inputKey === "ArrowDown" ||
+          inputKey === "ArrowRight"
+        ) {
+          let arrowKey = inputKey;
+          switch (arrowKey) {
+            case "ArrowUp":
+              outputKey = "w";
+              break;
+            case "ArrowLeft":
+              outputKey = "a";
+              break;
+            case "ArrowDown":
+              outputKey = "s";
+              break;
+            case "ArrowRight":
+              outputKey = "d";
+              break;
+          }
+        }
+        Key[outputKey] =
+          state === "down"
+            ? true
+            : state === "up"
+              ? false
+              : console.log("invalid state - keyHandler");
+        miscKeybinds(outputKey, state);
+      }
+
+      function miscKeybinds(inputKey, state) {
+        if (state === "down") {
+          if (Key["+"]) {
+            Snake.segmentCount += 5;
+          }
+          if (Key.Escape) {
+            pauseGame();
+          }
+          if (Key.L) {
+            console.log(tiles);
+          }
+          if (Key.P) {
+            //console.log(document.getElementsByClassName("menuButton"));
+            css.mainMenu.replaceChildren();
+          }
+        } else {
+        }
+      }
+
+      function createButtons(menuTitle, textArr) {
+        css.mainMenu.hidden = false;
+        css.menuText.innerText = menuTitle;
+        css.mainMenu.buttonDiv.replaceChildren();
+
+        for (let n = 0; n < textArr.length; n++) {
+          let tempButton = document.createElement("button");
+          tempButton.innerText = textArr[n].displayTxt;
+          tempButton.setAttribute("class", "menuButton");
+          tempButton.setAttribute("onclick", textArr[n].execFunction);
+          console.log(textArr[n].execFunction);
+          css.mainMenu.buttonDiv.append(tempButton);
+        }
+      }
+
+      function mainMenu() {
+        createButtons("Menu", [
+          { displayTxt: "Continue", execFunction: "continueGame()" },
+          { displayTxt: "Settings", execFunction: "settingsMenu()" },
+          { displayTxt: "Leaderboard", execFunction: "debugButton(this)" },
+          { displayTxt: "Statistics", execFunction: "debugButton(this)" },
+          { displayTxt: "New Game", execFunction: "newGame(true)" },
+          { displayTxt: "Quit", execFunction: "quit()" },
+        ]);
+      }
+
+      function continueGame() {
+        alive = true;
+        update();
+        css.mainMenu.hidden = true;
+        console.log("cont");
+      }
+
+      function pauseGame() {
+        alive = false;
+        mainMenu();
+        console.log("pause");
+      }
+
+      function newGame(bool) {
+        document.getElementById("score").innerText = 0;
+
+        Snake.x = 80;
+        Snake.y = 80;
+        Snake.direction = "right";
+        Snake.bufferDirection = "right";
+        Snake.lastDirection = "right";
+
+        Snake.segmentCount = 3;
+        SnakeSegments = [];
+
+        Apple.x = 230;
+        Apple.y = 80;
+
+        i = 0;
+        a = 3;
+        hardModeMult = 1;
+
+        for (let n = 0; n < tiles.length; n++) {
+          tiles[n].state = "free";
+        }
+
+        generateSnakeSegments(Snake.x, Snake.y);
+        tile.x = Snake.x;
+        tile.y = Snake.y;
+        start = true;
+        console.log("st");
+        continueGame();
+      }
+
+      function quit() {
+        close();
+      }
+
+      function generateSnakeSegments(x, y) {
+        if ((x - map.start_x) / map.tile_length < Snake.segmentCount) {
+          Snake.x += Snake.segmentCount * map.tile_length - map.start_x;
+
+          if (Snake.x >= Apple.x) {
+            Snake.x = Apple.x - map.tile_length;
+          }
+
+          let tempSegment = {
+            x: Snake.x,
+            y: Snake.y,
+          };
+
+          let tempSnakeSegments = [tempSegment];
+
+          let abc = 0;
+
+          while (Snake.segmentCount > tempSnakeSegments.length && abc < 200) {
+            abc++;
+            //console.log(abc);
+            let segmentDirection;
+            let repeatSegmentSpawnAmount;
+            if (tempSegment.y === Snake.y) {
+              if (tempSegment.x !== map.start_x) {
+                segmentDirection = "left";
+                repeatSegmentSpawnAmount =
+                  (tempSegment.x - map.start_x) / map.tile_length;
+              } else {
+                if (
+                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                  0
+                ) {
+                  segmentDirection = "down";
+
+                  repeatSegmentSpawnAmount =
+                    ((map.height - tempSegment.y) * 1) / map.tile_length;
+                  //console.log(repeatSegmentSpawnAmount);
+                  //Snake.segmentCount - tempSnakeSegments.length;
+                }
+              }
+            } else {
+              if (
+                tempSegment.y === map.height ||
+                tempSegment.y === Snake.y - map.tile_length
+              ) {
+                if (
+                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                  0
+                ) {
+                  segmentDirection = "right";
+                  repeatSegmentSpawnAmount = 1;
+                } else {
+                  segmentDirection = "up";
+                  if (
+                    tempSegment.x ===
+                    map.start_x + map.width - map.tile_length
+                  ) {
+                    repeatSegmentSpawnAmount =
+                      (tempSegment.y - map.start_y) / map.tile_length;
+                  } else {
+                    if (tempSegment.y === Snake.y - map.tile_length) {
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.y - map.start_y - map.tile_length) /
+                        map.tile_length;
+                    } else {
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.y - Snake.y - map.start_y) /
+                        map.tile_length;
+                    }
+                  }
+                }
+
+                //Snake.segmentCount - tempSnakeSegments.length;
+              } else {
+                if (
+                  tempSegment.y === Snake.y + map.tile_length ||
+                  tempSegment.y === map.start_y + map.tile_length
+                ) {
+                  if (
+                    ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                    0
+                  ) {
+                    segmentDirection = "down";
+                    if (tempSegment.y === map.start_y + map.tile_length) {
+                      repeatSegmentSpawnAmount =
+                        (Snake.y - tempSegment.y - map.tile_length) /
+                        map.tile_length;
+                      if (
+                        tempSegment.x ===
+                        map.start_x + map.width - map.tile_length * 2
+                      ) {
+                        repeatSegmentSpawnAmount++;
+                      }
+                    } else {
+                      repeatSegmentSpawnAmount =
+                        ((map.height - tempSegment.y) * 1) / map.tile_length;
+                    }
+                    //console.log(tempSegment.x, tempSegment.y + "awoighw");
+                  } else {
+                    //console.log(tempSegment.y, map.height, map.start_y);
+                    segmentDirection = "right";
+                    repeatSegmentSpawnAmount = 1;
+                  }
+                } else {
+                  if (tempSegment.y === map.start_y) {
+                    if (
+                      tempSegment.x ===
+                      map.start_x + map.width - map.tile_length
+                    ) {
+                      segmentDirection = "left";
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.x - map.start_x) / map.tile_length;
+                    } else {
+                      if (tempSegment.x === map.start_x) {
+                        segmentDirection = "down";
+                        repeatSegmentSpawnAmount =
+                          ((Snake.y - tempSegment.y - map.tile_length) * 1) /
+                          map.tile_length;
+                        //console.log(repeatSegmentSpawnAmount);
+                      }
+                    }
+                  } else {
+                    segmentDirection = "right";
+                    repeatSegmentSpawnAmount =
+                      Snake.segmentCount - tempSnakeSegments.length;
+                  }
+                }
+              }
+            }
+
+            repeatSegmentSpawn(repeatSegmentSpawnAmount, segmentDirection);
+          }
+          tempSnakeSegments.pop();
+          tempSnakeSegments.forEach((element) => {
+            manageSnakeSegments(element.x, element.y);
+          });
+
+          function repeatSegmentSpawn(amount, segmentDirection) {
+            if (amount > Snake.segmentCount) {
+              amount = Snake.segmentCount - tempSnakeSegments.length;
+            }
+            for (let n = 0; n < amount; n++) {
+              //manageSnakeSegments(Snake.x - map.tile_length * n, y);
+              let tempSegmentAxis =
+                segmentDirection === "right" || segmentDirection === "left"
+                  ? "x"
+                  : "y";
+              let invert =
+                segmentDirection === "right" || segmentDirection === "down"
+                  ? 1
+                  : -1;
+              tempSegment[tempSegmentAxis] += map.tile_length * invert;
+              tempSnakeSegments.unshift({
+                x: tempSegment.x,
+                y: tempSegment.y,
+                id: n,
+              });
+            }
+          }
+        } else {
+          for (let n = Snake.segmentCount; n > 0; n--) {
+            manageSnakeSegments(Snake.x - map.tile_length * n, y);
+          }
+        }
+      }
+
+      function settingsMenu() {
+        createButtons("Settings", [
+          { displayTxt: "Back", execFunction: "mainMenu()" },
+          { displayTxt: "changeSpeedmult", execFunction: "changeSpeedmult()" },
+          { displayTxt: "walls", execFunction: "changeSpeedmult()" },
+          { displayTxt: "hardMode", execFunction: "changeSpeedmult()" },
+          {
+            displayTxt: "StartsegmentCount",
+            execFunction: "changeSpeedmult()",
+          },
+          { displayTxt: "more apples", execFunction: "changeSpeedmult()" },
+        ]);
+      }
+
+      function changeSpeedmult() {
+        speedMult = prompt("Was soll der Geschwindigkeitsmultiplikator sein?");
+        isNaN(Number(speedMult)) || speedMult == 0 || speedMult === null
+          ? (speedMult = 1)
+          : (speedMult = 1 / Number(speedMult));
+        localStorage.setItem("speedMult", speedMult);
+      }
+
+      function debugButton(caller) {
+        console.log(`${caller.innerText} + needs a function`);
+      }
+
+      function Game() {
+        //only functions
+        canvas = document.getElementById("canvas1");
+        ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        mainMenu();
+
+        newGame();
+
+        pauseGame();
+
+        update(); //if(alive) else nothing
+
+        loadImages();
+        draw();
+      }
+
+      function update() {
+        if (!alive || start) {
+          return;
+        }
+        setTimeout(update, (15 * speedMult) / hardModeMult);
+        directionHandler();
+        //if(Snake.direction !== "none"){
+        move(Snake.lastDirection);
+
+        if (i >= map.tile_length) {
+          manageSnakeSegments(tile.x, tile.y);
+          checkCollision();
+          updateTiles();
+          i = 0;
+          if (tile.x === Apple.x && tile.y === Apple.y) {
+            eat();
+          } else {
+          }
+        }
+      }
+
+      function updateDirection() {
+        let allowDirectionChange = true;
+        let bufferDirection = Snake.direction;
+        if (Key.w === true) {
+          Snake.direction = "up";
+        }
+        if (Key.s === true) {
+          Snake.direction = "down";
+        }
+        if (Key.a === true) {
+          Snake.direction = "left";
+        }
+        if (Key.d === true) {
+          Snake.direction = "right";
+        }
+        switch (Snake.direction) {
+          case "up":
+            if (Snake.lastDirection === "down") {
+              allowDirectionChange = false;
+            }
+            break;
+          case "left":
+            if (Snake.lastDirection === "right") {
+              allowDirectionChange = false;
+            }
+            break;
+          case "down":
+            if (Snake.lastDirection === "up") {
+              allowDirectionChange = false;
+            }
+            break;
+          case "right":
+            if (Snake.lastDirection === "left") {
+              allowDirectionChange = false;
+            }
+            break;
+        }
+        if (bufferDirection !== Snake.direction) {
+          if (directionChange) {
+            Snake.bufferDirection = bufferDirection;
+          } else {
+            directionChange = true;
+          }
+        }
+        if (i === 0) {
+          if (directionChange) {
+            if (
+              Snake.direction === Snake.lastDirection ||
+              allowDirectionChange === false
+            ) {
+              Snake.lastDirection = Snake.bufferDirection;
+              allowDirectionChange = false;
+              Snake.bufferDirection;
+            }
+          }
+          if (allowDirectionChange) {
+            Snake.lastDirection = Snake.direction;
+            Snake.bufferDirection = Snake.lastDirection;
+            directionChange = false;
+          }
+        }
+      }
+
+      function move(direction) {
+        i++;
+        switch (direction) {
+          case "up":
+            Snake.y = tile.y - i;
+            Snake.x = tile.x;
+            a = 0;
+            break;
+
+          case "down":
+            Snake.y = tile.y + i;
+            Snake.x = tile.x;
+            a = 1;
+            break;
+
+          case "left":
+            Snake.x = tile.x - i;
+            Snake.y = tile.y;
+            a = 2;
+            break;
+          case "right":
+            Snake.x = tile.x + i;
+            Snake.y = tile.y;
+            a = 3;
+            break;
+          default:
+            Snake.direction = "none";
+            Snake.x = tile.x;
+            Snake.y = tile.y;
+        }
+      }
+
+      function checkCollision() {
+        /*if(Snake.x > map.start_x + map.width - map.tile_length || Snake.x < map.start_x || Snake.y > map.start_y + map.height - map.tile_length || Snake.y < map.start_y){
+                      dead();
+              }*/
+
+        if (Snake.x > map.start_x + map.width - map.tile_length) {
+          Snake.x -= map.width;
+        }
+        if (Snake.x < map.start_x) {
+          Snake.x += map.width;
+        }
+        if (Snake.y > map.start_y + map.height - map.tile_length) {
+          Snake.y -= map.height;
+        }
+        if (Snake.y < map.start_y) {
+          Snake.y += map.height;
+        }
+
+        if (adressTiles(Snake.x, Snake.y, "read").state === "segment") {
+          dead();
+        }
+      }
+
+      function manageSnakeSegments(x, y) {
+        //if (Snake.direction !== "none")
+
+        let SnakeSegment = {
+          x: x,
+          y: y,
+          width: map.tile_length,
+          height: map.tile_length,
+          src: "../textures/Segment.png",
+          img: new Image(),
+        };
+        SnakeSegment.img.src = SnakeSegment.src;
+        SnakeSegments.push(SnakeSegment);
+        adressTiles(x, y, "segment");
+
+        if (SnakeSegments.length > Snake.segmentCount) {
+          let oldSegment = SnakeSegments.shift();
+          adressTiles(oldSegment.x, oldSegment.y, "free");
+        }
+      }
+
+      function updateTiles() {
+        tile.x = Snake.x;
+        tile.y = Snake.y;
+        adressTiles(tile.x, tile.y, "head");
+      }
+
+      function eat() {
+        Snake.segmentCount++;
+        document.getElementById("score").textContent =
+          (Snake.segmentCount - Snake.startSegmentCount) / speedMult;
+
+        let freeTiles = tiles.filter(
+          (tileObj) => tileObj.state === "free" && tileObj.state !== "head",
+        );
+
+        if (freeTiles.length === 0) {
+          alert("U WIN!!!");
+          alive = false;
+          Apple.x *= -1;
+        } else {
+          let newAppleTile =
+            freeTiles[Math.floor(Math.random() * freeTiles.length)];
+          Apple.x = newAppleTile.x + map.start_x;
+          Apple.y = newAppleTile.y + map.start_y;
+        }
+        if (hardModeMult < 2 && true) /*hard mode is on*/ {
+          hardModeMult += 0.04;
+        }
+        console.log(hardModeMult);
+      }
+
+      function adressTiles(x, y, state) {
+        //xy in px
+        let targetTile =
+          tiles[
+            (((x - map.start_x) / map.tile_length) * map.height) /
+              map.tile_length +
+              (y - map.start_y) / map.tile_length
+          ];
+        if (state === "read") {
+          return targetTile;
+        } else {
+          if (targetTile === undefined) {
+            console.log("OUT OF BOUNDS");
+            canvas.setAttribute("style", "background-color:#ff0000"); // rgb # ff 00 00
+            console.log(ctx);
+          } else {
+            targetTile.state = state;
+          }
+        }
+      }
+
+      function dead() {
+        Snake.x = tile.x;
+        Snake.y = tile.y;
+        alive = false;
+        Snake.direction = "none";
+        console.log("dead");
+        alert(`You ate: ${Snake.segmentCount - 3} Apples`);
+      }
+
+      function loadImages() {
+        backgroundImage.src = "../textures/Background.png";
+        Snake.img = new Image();
+        Snake.img.src = Snake.src;
+        tile.img = new Image();
+        tile.img.src = tile.src;
+        Apple.img = new Image();
+        Apple.img.src = Apple.src;
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(backgroundImage, 0, 0);
+        SnakeSegments.forEach(function (SnakeSegment) {
+          ctx.drawImage(
+            SnakeSegment.img,
+            SnakeSegment.x,
+            SnakeSegment.y,
+            SnakeSegment.width,
+            SnakeSegment.height,
+          );
+        });
+        ctx.drawImage(
+          Apple.img,
+          /*a * map.tile_length*/ 0,
+          0,
+          map.tile_length,
+          map.tile_length,
+          Apple.x,
+          Apple.y,
+          Apple.width,
+          Apple.height,
+        );
+        ctx.drawImage(tile.img, tile.x, tile.y, tile.width, tile.height);
+        ctx.drawImage(
+          Snake.img,
+          //10, 20, //x, y pic
+          a * map.tile_length,
+          0,
+          map.tile_length,
+          map.tile_length, //w, h pic
+          Snake.x,
+          Snake.y, //x, y pos
+          map.tile_length,
+          map.tile_length,
+        );
+        requestAnimationFrame(draw);
+      }
+
+      /*TODO
+        menu navig
+          settings + cookies
+                    wände togglebar machen,  hardMode, segmentCount, dev jede var, more apples
+          new game  ask if apple >= 20 ????
+          
+
+          leaderboard
+
+
+
+
+
+
+      win
+
+      textures
+          */
+    </script>
+  </body>
+</html>

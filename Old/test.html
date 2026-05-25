@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="gridContainer">
+      <div class="gridTitle">Title</div>
+      <div>Name</div>
+      <div>currentKeybinds</div>
+      <div>new Bind</div>
+      <div>Reset</div>
+
+      <div class="gridTitle">Title</div>
+      <div>Name</div>
+      <div>currentKeybinds</div>
+      <div>new Bind</div>
+      <button>Reset</button>
+    </div>
+    <style>
+      .gridContainer {
+        background-color: aqua;
+        display: grid;
+        grid-gap: 10px;
+        grid-template-columns: auto 1fr auto auto;
+        grid-auto-rows: auto;
+      }
+
+      .gridTitle {
+        grid-column: 1 / -1;
+      }
+      .gridContainer div {
+        border-style: solid;
+        border-width: 5px;
+        border-radius: 10px;
+        border-color: rgb(00, 00, 00);
+        background-color: #7777ff;
+
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </body>
+</html>

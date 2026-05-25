@@ -1,0 +1,18 @@
+{
+  "state": {
+    "KeyW": "up",
+    "KeyA": "left",
+    "KeyS": "down",
+    "KeyD": "right",
+
+    "ArrowUp": "up",
+    "ArrowLeft": "left",
+    "ArrowDown": "down",
+    "ArrowRight": "right",
+
+    "LMB": "swipe"
+  },
+  "functions": {
+    "Escape": "pause"
+  }
+}

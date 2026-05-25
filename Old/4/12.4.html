@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schlange</title>
+    <canvas id="canvas1" width="320" height="180"></canvas>
+
+    <div class="scoreText" id="scoreBox">
+      <header class="scoreText">Punktzahl:</header>
+      <p class="scoreText" id="score">0</p>
+    </div>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      canvas {
+        background-color: #3f2800;
+        width: var(--screenWidth);
+        height: var(--screenHeight);
+        object-fit: contain;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+
+      .scoreText {
+        top: 10px;
+        position: absolute;
+        width: fit-content;
+        font-size: 42px;
+        color: aqua;
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px aqua;
+        margin: 0;
+      }
+
+      #scoreBox {
+        position: absolute;
+        left: 10px;
+      }
+
+      #score {
+        top: 50px;
+      }
+    </style>
+  </head>
+  <body onload="Game()">
+    <div class="menu" id="mainMenu">
+      <header id="menuText"></header>
+      <div id="buttonDiv"></div>
+    </div>
+    <style>
+      [hidden] {
+        display: none !important;
+      }
+      #mainMenu {
+        position: absolute;
+        width: var(--menuButtonWidth);
+        left: 50%;
+        transform: translateX(-50%);
+        top: 100px;
+
+        background: linear-gradient(90deg, chocolate, red, chocolate);
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        font-size: 48px;
+        font: bold;
+        font-family: monospace;
+        color: rgb(0, 0, 0);
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px black;
+
+        height: 75%;
+        border-radius: 20px;
+        pointer-events: all;
+
+        border-style: solid;
+        border-color: rgba(0, 0, 255, 0.5);
+        border-width: 10px;
+        transition: width 0.3s ease;
+      }
+
+      #mainMenu.expanded {
+        width: 50%;
+      }
+
+      #buttonDiv {
+        overflow-y: auto;
+        flex: 1;
+        pointer-events: all;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #menuText {
+        margin-top: 25px;
+      }
+
+      .menuButton {
+        padding: 10px;
+        font-size: 48px;
+        font-family: monospace;
+        height: fit-content;
+        background: linear-gradient(90deg, cyan, #00a0a0, cyan);
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
+        margin: 10px;
+
+        pointer-events: all;
+      }
+
+      .table {
+        border-collapse: collapse;
+        color: rgb(0, 0, 0);
+        -webkit-text-stroke-width: 0;
+
+        overflow: hidden;
+        margin: 10px;
+        table-layout: fixed;
+        text-align: center;
+        border: 10px, solid, black;
+        border-radius: 20px;
+        border-collapse: separate;
+        border-spacing: 0;
+
+        border: 3px solid #ff0000;
+        border-radius: 10px;
+        box-shadow: 0 0 0 4px black;
+      }
+      .tableRow {
+        border-bottom: 1px solid #ddd;
+      }
+      .tableData {
+        padding: 5px;
+        text-align: center;
+        font-size: 24px;
+        background: linear-gradient(90deg, #00abab, darkcyan);
+        border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+      }
+      th {
+        background-color: #222;
+        color: white;
+        font-weight: bold;
+      }
+
+      /* Gold */
+      .tableRow:nth-child(2) td {
+        background: linear-gradient(90deg, #ffd700, #ffb300);
+        color: #222;
+        font-weight: bold;
+      }
+
+      /* Silver */
+      .tableRow:nth-child(3) td {
+        background: linear-gradient(90deg, #c0c0c0, #9e9e9e);
+        color: #222;
+        font-weight: bold;
+      }
+
+      /* Bronze */
+      .tableRow:nth-child(4) td {
+        background: linear-gradient(90deg, #cd7f32, #a65e2e);
+        color: white;
+        font-weight: bold;
+      }
+
+      /* Last place */
+      .tableRow:last-of-type td {
+        background: linear-gradient(90deg, #7cfc00, #00ff00);
+        color: white;
+        font-weight: bold;
+      }
+      .tableRow:nth-child(2) td,
+      .tableRow:nth-child(3) td,
+      .tableRow:nth-child(4) td {
+        border-bottom: 3px solid rgba(0, 0, 0, 0.2);
+      }
+    </style>
+    <script>
+      let deviceInfo = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        resulutionMult:
+          screen.height / document.getElementById("canvas1").height,
+        aspectRatio: screen.width / screen.height,
+      };
+
+      let css = {
+        mainMenu: document.getElementById("mainMenu"),
+        menuText: document.getElementById("menuText"),
+        menuButtons: document.getElementsByClassName("menuButton"),
+        tables: {},
+      };
+
+      css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
+
+      document.documentElement.style.setProperty(
+        "--screenWidth",
+        deviceInfo.width + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--screenHeight",
+        deviceInfo.height + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--menuButtonWidth",
+        "500" + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--menuLeft",
+        calcMiddle(deviceInfo.width, css.mainMenu.offsetWidth) + "px",
+      );
+
+      function calcMiddle(x, offset) {
+        return (x - offset) / 2;
+      }
+      let debugCounter = 0;
+
+      let hardModeMult;
+      let speedMult = 1 / Number(localStorage.getItem("speedMult"));
+      isNaN(Number(speedMult)) || Number(speedMult) === 0
+        ? (speedMult = 1)
+        : (speedMult = 1 / Number(speedMult));
+      let Key = {};
+
+      let tickCounter = 0;
+      let alive = false;
+      let start = false;
+      let updateloop;
+      let directionChange;
+
+      let map = {
+        start_x: 40,
+        start_y: 10,
+        width: 240,
+        height: 160,
+        tile_length: 10,
+        appleCout: 2,
+      };
+
+      let canvas;
+      let ctx;
+      let backgroundImage = new Image();
+      let bufferDirection;
+      let Snake = {
+        x: 80,
+        y: 80,
+        direction: 0,
+        bufferDirection: 0,
+        lastDirection: 0,
+        segmentCount: 30,
+        startSegmentCount: 4,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: "../textures/Spreadsheet.png",
+      };
+
+      let options = {
+        preventAccidentalLeave: 20,
+      };
+
+      Snake.startSegmentCount = Snake.segmentCount;
+      let SnakeSegments = [];
+
+      let tiles = [];
+      for (let b = 0; b < map.width / map.tile_length; b++) {
+        for (let c = 0; c < map.height / map.tile_length; c++) {
+          let tileObj = {
+            name: `tileObj_${b}_${c}`,
+            x: b * map.tile_length,
+            y: c * map.tile_length,
+            state: "head",
+          };
+          tiles.push(tileObj);
+        }
+      }
+
+      let tile = {
+        x: Snake.x,
+        y: Snake.y,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: "../textures/Segment.png",
+      };
+      let Apples = [];
+      let Apple = {
+        x: 230,
+        y: 80,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: "../textures/Strawberry.png",
+      };
+
+      document.onkeydown = function (e) {
+        if (e.repeat === false) {
+          if (e.Key === "w" || "a" || "s" || "d") {
+            Key.w = false;
+            Key.a = false;
+            Key.s = false;
+            Key.d = false;
+          }
+          keyHandler(e.key, "down");
+        }
+      };
+
+      document.onkeyup = function (e) {
+        keyHandler(e.key, "up");
+      };
+
+      function keyHandler(inputKey, state) {
+        let outputKey = inputKey;
+        if (
+          inputKey === "ArrowUp" ||
+          inputKey === "ArrowLeft" ||
+          inputKey === "ArrowDown" ||
+          inputKey === "ArrowRight"
+        ) {
+          let arrowKey = inputKey;
+          switch (arrowKey) {
+            case "ArrowUp":
+              outputKey = "w";
+              break;
+            case "ArrowLeft":
+              outputKey = "a";
+              break;
+            case "ArrowDown":
+              outputKey = "s";
+              break;
+            case "ArrowRight":
+              outputKey = "d";
+              break;
+          }
+        }
+        Key[outputKey] =
+          state === "down"
+            ? true
+            : state === "up"
+              ? false
+              : console.log("invalid state - keyHandler");
+        miscKeybinds(outputKey, state);
+        if (start) {
+          alive = true;
+          start = false;
+          directionHandler();
+          updateDirection();
+          console.log(Snake);
+          update();
+        }
+      }
+
+      function miscKeybinds(inputKey, state) {
+        if (state === "down") {
+          if (Key["+"]) {
+            Snake.segmentCount += 5;
+          }
+          if (Key.Escape) {
+            pauseGame();
+          }
+          if (Key.L) {
+            console.log(tiles);
+          }
+          if (Key.P) {
+            css.mainMenu.replaceChildren();
+          }
+        } else {
+        }
+      }
+
+      function createElements(elementArr, parentObj, replaceBool = true) {
+        if (replaceBool) {
+          parentObj.replaceChildren();
+        }
+        let tempCounter = 0;
+        for (const element of elementArr) {
+          let tempElement = document.createElement(element.type);
+
+          element?.id
+            ? (tempElement.id = element.id)
+            : (tempElement.id = element.type + `_${tempCounter}`);
+
+          for (const property in element) {
+            switch (property) {
+              case "type": {
+                break;
+              }
+              case "id": {
+                break;
+              }
+              case "children": {
+                break;
+              }
+              case "text": {
+                tempElement.innerText = element[property];
+                break;
+              }
+              case "className": {
+                tempElement.className = element[property];
+                break;
+              }
+              case "onclick": {
+                //on rule expand later
+                tempElement[`${property}`] = element[property];
+                break;
+              }
+              default:
+                tempElement.setAttribute(property, element[property]);
+            }
+          }
+
+          if (element?.children) {
+            createElements(element.children, tempElement, false);
+          }
+          parentObj.append(tempElement);
+
+          tempCounter++;
+        }
+      }
+
+      class menuButtonJs {
+        constructor(text, onclick, id = null) {
+          this.type = "button";
+          this.text = text;
+          this.className = "menuButton";
+          this.onclick = onclick;
+          this.id = id;
+        }
+      }
+
+      function mainMenu() {
+        createElements(
+          [
+            new menuButtonJs("Continue", continueGame),
+            new menuButtonJs("Settings", settingsMenu),
+            new menuButtonJs("Leaderboard", leaderboard),
+            new menuButtonJs("Statistics", function () {
+              debugButton(this);
+            }),
+            new menuButtonJs("New Game", newGame),
+            new menuButtonJs("Quit", quit),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+        css.menuText.innerText = "Menu";
+        css.mainMenu.classList.remove("expanded");
+        css.mainMenu.hidden = false;
+      }
+
+      function continueGame() {
+        alive = true;
+        update();
+        //start = true;
+        css.mainMenu.hidden = true;
+      }
+
+      function pauseGame() {
+        //start = false;
+        alive = false;
+        mainMenu();
+      }
+
+      function settingsMenu() {
+        css.mainMenu.classList.add("expanded");
+        createElements(
+          [
+            new menuButtonJs("Back", mainMenu),
+            new menuButtonJs("changeSpeedmult", changeSpeedmult),
+            new menuButtonJs("walls", function () {
+              debugButton(this);
+            }),
+            new menuButtonJs("hardMode", function () {
+              debugButton(this);
+            }),
+            new menuButtonJs("StartsegmentCount", function () {
+              debugButton(this);
+            }),
+
+            new menuButtonJs("more apples", function () {
+              debugButton(this);
+            }),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+      }
+
+      function changeSpeedmult() {
+        speedMult = prompt("Was soll der Geschwindigkeitsmultiplikator sein?");
+        isNaN(Number(speedMult)) || speedMult == 0 || speedMult === null
+          ? (speedMult = 1)
+          : (speedMult = 1 / Number(speedMult));
+        localStorage.setItem("speedMult", speedMult);
+      }
+
+      function leaderboard() {
+        css.mainMenu.classList.add("expanded");
+        createElements(
+          [
+            new menuButtonJs("Back", mainMenu),
+            new tableAssembler("leaderboardTable", [
+              ["Rank", "Name", "Score"],
+              ["🏆", "123456789", "999"],
+              ["🥈", "123456789", "999"],
+              ["🥉", "123456789", "999"],
+              ["4th", "123456789", "999"],
+              ["5th", "123456789", "999"],
+              ["6th", "123456789", "999"],
+              ["7th", "123456789", "999"],
+              ["8th", "123456789", "999"],
+              ["9th", "123456789", "999"],
+              ["Xth", "123456789", "999"],
+              ["💩", "Oma", "1"],
+            ]),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+        css.tables.leaderboard = document.getElementById("leaderBoardTable");
+      }
+
+      class tableAssembler {
+        constructor(id, text) {
+          this.type = "table";
+          this.className = "table";
+          this.id = id; //leaderboardTable
+          this.children = [];
+
+          for (let n = 0; n < text.length; n++) {
+            this.children.push({
+              type: "tr",
+              className: "tableRow",
+              children: [],
+            });
+            for (let i = 0; i < text[n].length; i++) {
+              this.children[n].children.push({
+                type: `${n === 0 ? "th" : "td"}`,
+                text: text[n][i],
+                className: "tableData",
+                id: null,
+              });
+            }
+          }
+          this.children.push({
+            type: "colgroup",
+            children: [
+              { type: "col", width: "25%" },
+              { type: "col", width: "50%" },
+              { type: "col", width: "25%" },
+            ],
+          });
+        }
+      }
+
+      function newGame() {
+        if (
+          Snake.segmentCount - Snake.startSegmentCount >=
+          options.preventAccidentalLeave
+        ) {
+          return;
+        }
+        document.getElementById("score").innerText = 0;
+
+        Snake.x = 80;
+        Snake.y = 80;
+        Snake.direction = 0;
+        Snake.bufferDirection = 0;
+        Snake.lastDirection = 0;
+
+        Snake.segmentCount = Snake.startSegmentCount;
+        SnakeSegments = [];
+
+        Apple.x = 230;
+        Apple.y = 80;
+
+        tickCounter = 0;
+        hardModeMult = 1;
+
+        for (let n = 0; n < tiles.length; n++) {
+          tiles[n].state = "free";
+        }
+
+        generateSnakeSegments(Snake.x, Snake.y);
+        tile.x = Snake.x;
+        tile.y = Snake.y;
+        alive = true;
+        start = true;
+        continueGame();
+      }
+
+      function generateSnakeSegments(x, y) {
+        if ((x - map.start_x) / map.tile_length < Snake.segmentCount) {
+          Snake.x += Snake.segmentCount * map.tile_length - map.start_x;
+
+          if (Snake.x >= Apple.x) {
+            Snake.x = Apple.x - map.tile_length;
+          }
+
+          let tempSegment = {
+            x: Snake.x,
+            y: Snake.y,
+            angle: Snake.lastDirection,
+          };
+
+          let tempSnakeSegments = [tempSegment];
+
+          let abc = 0;
+
+          while (Snake.segmentCount > tempSnakeSegments.length && abc < 200) {
+            abc++;
+            let segmentDirection;
+            let repeatSegmentSpawnAmount;
+            if (tempSegment.y === Snake.y) {
+              if (tempSegment.x !== map.start_x) {
+                segmentDirection = 180;
+                repeatSegmentSpawnAmount =
+                  (tempSegment.x - map.start_x) / map.tile_length;
+              } else {
+                if (
+                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                  0
+                ) {
+                  segmentDirection = 90;
+
+                  repeatSegmentSpawnAmount =
+                    ((map.height - tempSegment.y) * 1) / map.tile_length;
+                }
+              }
+            } else {
+              if (
+                tempSegment.y === map.height ||
+                tempSegment.y === Snake.y - map.tile_length
+              ) {
+                if (
+                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                  0
+                ) {
+                  segmentDirection = 0;
+                  repeatSegmentSpawnAmount = 1;
+                } else {
+                  segmentDirection = 270;
+                  if (
+                    tempSegment.x ===
+                    map.start_x + map.width - map.tile_length
+                  ) {
+                    repeatSegmentSpawnAmount =
+                      (tempSegment.y - map.start_y) / map.tile_length;
+                  } else {
+                    if (tempSegment.y === Snake.y - map.tile_length) {
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.y - map.start_y - map.tile_length) /
+                        map.tile_length;
+                    } else {
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.y - Snake.y - map.start_y) /
+                        map.tile_length;
+                    }
+                  }
+                }
+
+                //Snake.segmentCount - tempSnakeSegments.length;
+              } else {
+                if (
+                  tempSegment.y === Snake.y + map.tile_length ||
+                  tempSegment.y === map.start_y + map.tile_length
+                ) {
+                  if (
+                    ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                    0
+                  ) {
+                    segmentDirection = 90;
+                    if (tempSegment.y === map.start_y + map.tile_length) {
+                      repeatSegmentSpawnAmount =
+                        (Snake.y - tempSegment.y - map.tile_length) /
+                        map.tile_length;
+                      if (
+                        tempSegment.x ===
+                        map.start_x + map.width - map.tile_length * 2
+                      ) {
+                        repeatSegmentSpawnAmount++;
+                      }
+                    } else {
+                      repeatSegmentSpawnAmount =
+                        ((map.height - tempSegment.y) * 1) / map.tile_length;
+                    }
+                  } else {
+                    segmentDirection = 0;
+                    repeatSegmentSpawnAmount = 1;
+                  }
+                } else {
+                  if (tempSegment.y === map.start_y) {
+                    if (
+                      tempSegment.x ===
+                      map.start_x + map.width - map.tile_length
+                    ) {
+                      segmentDirection = 180;
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.x - map.start_x) / map.tile_length;
+                    } else {
+                      if (tempSegment.x === map.start_x) {
+                        segmentDirection = 90;
+                        repeatSegmentSpawnAmount =
+                          ((Snake.y - tempSegment.y - map.tile_length) * 1) /
+                          map.tile_length;
+                      }
+                    }
+                  } else {
+                    segmentDirection = 0;
+                    repeatSegmentSpawnAmount =
+                      Snake.segmentCount - tempSnakeSegments.length;
+                  }
+                }
+              }
+            }
+
+            repeatSegmentSpawn(repeatSegmentSpawnAmount, segmentDirection);
+          }
+          tempSnakeSegments.pop();
+          tempSnakeSegments.forEach((element) => {
+            manageSnakeSegments(element.x, element.y);
+          });
+
+          function repeatSegmentSpawn(amount, segmentDirection) {
+            if (amount > Snake.segmentCount) {
+              amount = Snake.segmentCount - tempSnakeSegments.length;
+            }
+            for (let n = 0; n < amount; n++) {
+              //manageSnakeSegments(Snake.x - map.tile_length * n, y);
+              let tempSegmentAxis =
+                segmentDirection === 0 || segmentDirection === 180 ? "x" : "y";
+              let invert =
+                segmentDirection === 0 || segmentDirection === 90 ? 1 : -1;
+              tempSegment[tempSegmentAxis] += map.tile_length * invert;
+              tempSnakeSegments.unshift({
+                x: tempSegment.x,
+                y: tempSegment.y,
+                id: n,
+              });
+            }
+          }
+        } else {
+          for (let n = Snake.segmentCount; n > 0; n--) {
+            manageSnakeSegments(Snake.x - map.tile_length * n, y);
+          }
+        }
+      }
+
+      function debugButton(caller) {
+        console.log(`${caller.innerText} + needs a function`);
+      }
+
+      function quit() {
+        close();
+      }
+
+      function Game() {
+        //only functions
+        canvas = document.getElementById("canvas1");
+        ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+
+        newGame();
+
+        pauseGame();
+        start = false;
+
+        //update(); //if(alive) else nothing
+
+        loadImages();
+        draw();
+      }
+
+      function update() {
+        console.log(alive, start);
+
+        if (start || (!alive && (tickCounter === 0 || tickCounter >= 10))) {
+          return;
+        }
+
+        updateloop = setTimeout(update, (15 * speedMult) / hardModeMult);
+        directionHandler();
+        //if(Snake.direction !== "none"){
+        move(Snake.lastDirection);
+
+        if (tickCounter >= map.tile_length) {
+          updateDirection();
+          checkCollision();
+          manageSnakeSegments(Snake.x, Snake.y);
+
+          updateTiles();
+          tickCounter = 0;
+          if (tile.x === Apple.x && tile.y === Apple.y) {
+            eat();
+          }
+        }
+      }
+
+      function directionHandler() {
+        let bufferDirection = Snake.direction;
+        if (Key.w === true) {
+          Snake.direction = 270;
+        }
+        if (Key.s === true) {
+          Snake.direction = 90;
+        }
+        if (Key.a === true) {
+          Snake.direction = 180;
+        }
+        if (Key.d === true) {
+          Snake.direction = 0;
+        }
+
+        if (
+          bufferDirection !== Snake.direction &&
+          Snake.bufferDirection === Snake.lastDirection
+        ) {
+          directionChange = true;
+          Snake.bufferDirection = bufferDirection;
+        }
+      }
+
+      function getInverseDir(normalDir) {
+        return normalDir + 180 < 360 ? normalDir + 180 : normalDir - 180;
+      }
+
+      function updateDirection() {
+        let wrongDir = getInverseDir(Snake.lastDirection);
+
+        if (
+          directionChange &&
+          (Snake.direction === Snake.lastDirection ||
+            getInverseDir(Snake.direction) === Snake.lastDirection) &&
+          Snake.bufferDirection !== getInverseDir(Snake.lastDirection)
+        ) {
+          Snake.lastDirection = Snake.bufferDirection;
+        } else {
+          if (Snake.direction !== wrongDir) {
+            directionChange = false;
+            Snake.lastDirection = Snake.direction;
+            Snake.bufferDirection = Snake.lastDirection;
+          }
+        }
+      }
+
+      function move(direction) {
+        tickCounter++;
+        switch (direction) {
+          case 270:
+            Snake.y = tile.y - tickCounter;
+            Snake.x = tile.x;
+            break;
+          case 90:
+            Snake.y = tile.y + tickCounter;
+            Snake.x = tile.x;
+            break;
+          case 180:
+            Snake.x = tile.x - tickCounter;
+            Snake.y = tile.y;
+            break;
+          case 0:
+            Snake.x = tile.x + tickCounter;
+            Snake.y = tile.y;
+            break;
+          default:
+            Snake.direction = "none";
+            Snake.x = tile.x;
+            Snake.y = tile.y;
+        }
+      }
+
+      function checkCollision() {
+        /*if(Snake.x > map.start_x + map.width - map.tile_length || Snake.x < map.start_x || Snake.y > map.start_y + map.height - map.tile_length || Snake.y < map.start_y){
+                              dead();
+                      }*/
+
+        if (Snake.x > map.start_x + map.width - map.tile_length) {
+          Snake.x -= map.width;
+        }
+        if (Snake.x < map.start_x) {
+          Snake.x += map.width;
+        }
+        if (Snake.y > map.start_y + map.height - map.tile_length) {
+          Snake.y -= map.height;
+        }
+        if (Snake.y < map.start_y) {
+          Snake.y += map.height;
+        }
+
+        if (adressTiles(Snake.x, Snake.y, "read").state === "segment") {
+          dead();
+        }
+      }
+
+      function manageSnakeSegments(x, y) {
+        //if (Snake.direction !== "none")
+        console.log(debugCounter);
+        debugCounter++;
+        let SnakeSegment = {
+          x: x,
+          y: y,
+          angle: Snake.lastDirection,
+          width: map.tile_length,
+          height: map.tile_length,
+          src: "../textures/Spreadsheet.png",
+          img: new Image(),
+        };
+        SnakeSegment.img.src = SnakeSegment.src;
+        SnakeSegments.push(SnakeSegment);
+        adressTiles(x, y, "segment");
+
+        if (SnakeSegments.length > Snake.segmentCount) {
+          let oldSegment = SnakeSegments.shift();
+          adressTiles(oldSegment.x, oldSegment.y, "free");
+        }
+      }
+
+      function updateTiles() {
+        tile.x = Snake.x;
+        tile.y = Snake.y;
+        tile.angle = Snake.lastDirection;
+        adressTiles(tile.x, tile.y, "head");
+      }
+
+      function eat() {
+        Snake.segmentCount++;
+        document.getElementById("score").textContent =
+          (Snake.segmentCount - Snake.startSegmentCount) / speedMult;
+
+        let freeTiles = tiles.filter(
+          (tileObj) => tileObj.state === "free" && tileObj.state !== "head",
+        );
+
+        if (freeTiles.length === 0) {
+          alert("U WIN!!!");
+          alive = false;
+          Apple.x *= -1;
+        } else {
+          let newAppleTile =
+            freeTiles[Math.floor(Math.random() * freeTiles.length)];
+          Apple.x = newAppleTile.x + map.start_x;
+          Apple.y = newAppleTile.y + map.start_y;
+        }
+        if (hardModeMult < 2 && true) /*hard mode is on*/ {
+          hardModeMult += 0.04;
+        }
+      }
+
+      function adressTiles(x, y, state) {
+        //xy in px
+        let targetTile =
+          tiles[
+            (((x - map.start_x) / map.tile_length) * map.height) /
+              map.tile_length +
+              (y - map.start_y) / map.tile_length
+          ];
+        if (state === "read") {
+          return targetTile;
+        } else {
+          if (targetTile === undefined) {
+            canvas.setAttribute("style", "background-color:#ff0000"); // rgb # ff 00 00
+          } else {
+            targetTile.state = state;
+          }
+        }
+      }
+
+      function dead() {
+        Snake.x = tile.x;
+        Snake.y = tile.y;
+        alive = false;
+        Snake.direction = "none";
+        //alert(`You ate: ${Snake.segmentCount - 3} Apples`);
+        createElements("You Died", []);
+      }
+
+      function loadImages() {
+        backgroundImage.src = "../textures/Background.png";
+        Snake.img = new Image();
+        Snake.img.src = Snake.src;
+        tile.img = new Image();
+        tile.img.src = tile.src;
+        Apple.img = new Image();
+        Apple.img.src = Apple.src;
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(backgroundImage, 0, 0);
+        SnakeSegments.forEach(function (SnakeSegment) {
+          /*ctx.drawImage(
+            SnakeSegment.img,
+            SnakeSegment.x,
+            SnakeSegment.y,
+            SnakeSegment.width,
+            SnakeSegment.height,
+          );*/
+          rotate(SnakeSegment.angle, SnakeSegment, 10, 0);
+        });
+        rotate(0, Apple); /*ctx.drawImage(
+          Apple.img,
+          a * map.tile_length 0,
+          
+          0,
+          map.tile_length,
+          map.tile_length,
+          Apple.x,
+          Apple.y,
+          Apple.width,
+          Apple.height,
+        );*/
+        //ctx.drawImage(tile.img, tile.x, tile.y, tile.width, tile.height);
+        /*ctx.drawImage(
+          Snake.img,
+
+          //10, 20, //x, y pic
+          //(Snake.direction / 270) * map.tile_length,
+          0,
+          0,
+          map.tile_length,
+          map.tile_length, //w, h pic
+          Snake.x,
+          Snake.y, //x, y pos
+          map.tile_length,
+          map.tile_length,
+        );*/
+        rotate(Snake.lastDirection, Snake, 20, 0);
+        requestAnimationFrame(draw);
+      }
+      function rotate(
+        angle,
+        imgObj,
+        x_pic = 0,
+        y_pic = 0,
+        w = map.tile_length,
+        h = map.tile_length,
+      ) {
+        let x = imgObj.x;
+        let y = imgObj.y;
+        if (angle !== 0) {
+          ctx.save();
+          ctx.translate(imgObj.x, imgObj.y);
+          x = 0;
+          y = 0;
+          ctx.rotate((angle * Math.PI) / 180);
+          /*switch (angle) {
+            case 270: {
+              x -= 10;
+              break;
+            }
+            case 90: {
+              y -= 10;
+              break;
+            }
+            default: {
+              console.log(angle);
+              break;
+            }
+          }*/
+          if (angle >= 180) {
+            x -= 10;
+          }
+          if (angle <= 180) {
+            y -= 10;
+          }
+        }
+        ctx.drawImage(imgObj.img, x_pic, y_pic, w, h, x, y, w, h);
+        ctx.restore();
+      }
+
+      /*TODO
+                menu navig
+                  settings + cookies
+                            wände togglebar machen,  hardMode, segmentCount, dev jede var, more apples
+                  new game  ask if apple >= 20
+
+
+                  leaderboard
+
+
+
+
+
+
+              win
+
+              textures
+                  */
+    </script>
+  </body>
+</html>

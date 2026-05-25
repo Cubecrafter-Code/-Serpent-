@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schlange</title>
+    <canvas id="canvas1" width="320" height="180"></canvas>
+    <style>
+        html, body {
+            margin: 0;
+            padding:0;
+            overflow: hidden;
+        }
+    canvas{
+        background-color: rgb(0, 0, 0, 0.8);
+        width: 1920px;   
+        height: 1080px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;}
+    </style>
+    <script>
+        let Key = {}
+
+        let a = 1;
+        let i = 0;
+        let isGoingHorizontal = true;
+        let alive = true;
+
+        let canvas;
+        let ctx;
+        let backgroundImage = new Image();
+
+        let Snake = {
+        x: 40,
+        y: 10,
+        direction : "none",
+        width: 240,
+        height: 160,
+        src: '../textures/Snake.png'
+        };
+        let SnakeSegments = [];
+
+        let tile = {
+                    x: Snake.x,
+                    y: Snake.y
+        }
+        
+        let Apple = {
+        x: 10,
+        y: 10,
+        width: 10,
+        height: 10,
+        src: '../textures/Arrows.png'
+        };        
+
+        document.onkeydown = function(e) {
+            if(e.Key === "w" || "a" || "s" || "d"){
+                Key.w = false;
+                Key.a = false;
+                Key.s = false;
+                Key.d = false;
+            }
+            keyHandler(e, "down")
+        }  
+
+        document.onkeyup = function(e) {
+            keyHandler(e, "up")
+        }
+
+        function keyHandler(e, state){
+            Key[e.key] = state === "down" ?  true : state === "up" ? false : console.log("invalid state - keyHandler")
+            console.log(`${e.key} : ${Key[e.key]}`)   
+        }
+
+
+
+
+
+        function Game() {
+        canvas = document.getElementById('canvas1');
+        ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        setInterval(update, 50);
+        loadImages();
+        draw();
+
+        
+
+        function update(){
+            isGoingHorizontal = Key.a || Key.d ? true : false;
+            updateDirection();
+            //if(Snake.direction !== "none"){
+                move(Snake.direction)
+             
+            
+            if(i >= 10){
+                manageSnakeSegments(tile.x , tile.y)
+                tile.x = Snake.x;
+                tile.y = Snake.y;
+                i = 0
+            }
+        
+        }
+
+        function updateDirection(){
+                if(Key.Enter){
+                    Snake.direction = "none"
+                }
+            
+            //if(isGoingHorizontal){
+                if(Key.w === true){
+                    a = 0;
+                    Snake.direction = "up";
+                }
+                if(Key.s === true){
+                    a = 1;
+                    Snake.direction = "down";
+                }
+            //}else{
+                if(Key.a === true){
+                    a = 2;
+                    Snake.direction = "left";
+                }
+                if(Key.d === true){
+                    a = 3;
+                    Snake.direction = "right";
+                }   
+        }//}
+
+        function move (direction){
+            i++;
+            switch(direction){
+                case "up": 
+                    Snake.y = tile.y - i;
+                    Snake.x = tile.x;
+                    a = 0;
+                    break;
+
+                case "down":
+                    Snake.y = tile.y + i;
+                    Snake.x = tile.x;
+                    a = 1;
+                    break;
+                
+                case "left":
+                    Snake.x = tile.x - i;
+                    Snake.y = tile.y;
+                    a = 2;
+                    break;
+                case "right":
+                    Snake.x = tile.x + i;
+                    Snake.y = tile.y;
+                    a = 3;
+                    break;
+                default:
+                    console.log("no movement direction");
+                    Snake.direction = "none";  
+                    Snake.x = tile.x;
+                    Snake.y = tile.y;
+            }
+        }
+
+        function manageSnakeSegments(x, y) {
+            if(Snake.direction !== "none"){
+                let SnakeSegment = {
+                    x: x,
+                    y: y,
+                    width: 10,
+                    height: 10,
+                    src: '../textures/Segment.png', 
+                    img: new Image()
+                };
+                SnakeSegment.img.src = SnakeSegment.src
+                SnakeSegments.push(SnakeSegment);
+            }
+            else{
+                console.log("no Direction, no new Segment");
+            }
+        }
+
+
+        function loadImages() {
+            backgroundImage.src = '../textures/Background.png';
+            Snake.img = new Image();
+            Snake.img.src = Snake.src;
+            Apple.img = new Image();
+            Apple.img.src = Apple.src;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(backgroundImage, 0, 0);
+            //ctx.drawImage(Snake.img, Snake.x, Snake.y, Snake.width, Snake.height);
+            ctx.drawImage(Snake.img,
+            10, 20, //x, y pic
+            10, 10, //w, h pic
+            Snake.x, Snake.y, //x, y pos
+            10, 10);//w, h //should be as in pic
+            SnakeSegments.forEach(function(SnakeSegment) {
+                ctx.drawImage(SnakeSegment.img, SnakeSegment.x, SnakeSegment.y, SnakeSegment.width, SnakeSegment.height)
+        })
+            ctx.drawImage(Apple.img, 
+            a * 10, 0,
+            10, 10,
+            Apple.x, Apple.y, 
+            Apple.width, Apple.height);
+            requestAnimationFrame(draw);
+
+        }}
+        
+    </script>
+</head>
+<body onload="Game()">
+    <canvas id="canvas1"  width="1920" height="1080"></canvas>
+</body>
+</html>
