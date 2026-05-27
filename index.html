@@ -118,8 +118,8 @@
     </div>
     <style>
       /** {
-        outline: 1px solid red;
-      }*/
+              outline: 1px solid red;
+            }*/
 
       [hidden] {
         display: none !important;
@@ -272,41 +272,98 @@
       }
 
       .gridContainer {
-        width: 100%;
+        padding: 10px;
+
+        flex: 1;
+
+        height: fit-content;
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
         display: grid;
         grid-gap: 10px;
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
-        grid-auto-rows: auto;
+        grid-template-columns: repeat(4, minmax(1px, 1fr));
+        grid-auto-rows: min-content;
+
+        margin: 10px;
       }
 
-      .gridTitle {
-        margin-top: 20px;
-        grid-column: 1 / -1;
-        background: linear-gradient(lime, rgb(13, 134, 64), lime);
+      .gridContainer .gridSection {
+        grid-column: 1/-1;
+        display: grid;
+        grid-template-columns: subgrid;
 
-        justify-self: center;
-        padding: 10px 25% 10px 25%;
-        width: fit-content;
+        background: linear-gradient(90deg, pink, magenta, pink);
+        padding: 10px;
+        margin: 10px;
+        min-height: 0;
+
+        border: solid;
+        border-color: purple;
+        border-width: 5px;
+        border-radius: 20px;
+        justify-items: center;
+      }
+
+      .gridContainer .gridSectionHeader {
+        grid-column: 1/-1;
+        background: linear-gradient(yellow, orange, yellow);
+        padding: 10px;
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+        top: 10px;
         position: sticky;
-        margin: 40px 10px 25px 10px;
-        top: 0px;
+        width: fit-content;
+      }
+
+      .gridSectionRow {
+        grid-column: span 4;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-auto-rows: max-content;
+        grid-gap: 10px;
+
+        margin: 20px;
+        min-height: 0;
+
+        background: linear-gradient(lime, rgb(13, 134, 64), lime);
 
         border: solid;
         border-color: green;
         border-width: 5px;
         border-radius: 20px;
-      }
 
-      .gridWrap {
-        white-space: normal;
-        overflow-wrap: break-all;
-      }
-
-      .gridContainer div {
-        height: fit-content;
-        display: flex;
+        overflow: hidden;
         align-items: center;
-        justify-content: center;
+        justify-items: center;
+      }
+
+      .gridSectionRow div {
+        width: 100%;
+
+        contain: size;
+        overflow-y: scroll;
+        align-content: center;
+
+        scrollbar-width: thin;
+
+        min-height: 0;
+        height: 100%;
+      }
+
+      .gridSectionRow div p {
+        margin: 0;
+        height: fit-content;
+        word-wrap: break-word;
+      }
+
+      .gridSectionRow button {
+        width: 100%;
       }
 
       .table {
@@ -373,7 +430,7 @@
       }
     </style>
     <script>
-      const path = "/-Serpent-/";
+      const path = `/${window.location.pathname.split("/")[1]}/`;
       let canvas = document.getElementById("canvas1");
       let ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
@@ -441,31 +498,13 @@
         },
         functions: {
           pause: pauseGame,
-          scoreUp: function () {
+          /*scoreUp: function () {
             Snake.segmentCount++;
-          },
+          },*/
         },
       };
 
-      let Keybinds = {
-        state: {
-          KeyW: "up",
-          KeyA: "left",
-          KeyS: "down",
-          KeyD: "right",
-
-          ArrowUp: "up",
-          ArrowLeft: "left",
-          ArrowDown: "down",
-          ArrowRight: "right",
-
-          LMB: "swipe",
-        },
-        functions: {
-          Escape: "pause",
-          KeyP: "scoreUp",
-        },
-      };
+      let Keybinds;
 
       let leaderboardArr = localStorage.getItem("leaderboardArray")
         ? JSON.parse(localStorage.getItem("leaderboardArray"))
@@ -512,7 +551,7 @@
         startSegmentCount: 4,
         width: map.tile_length,
         height: map.tile_length,
-        src: "textures/Spreadsheet.png",
+        src: `${path}textures/Spreadsheet.png`,
         srcCoords: { x: 10, y: 0 },
       };
 
@@ -546,56 +585,6 @@
           : localStorage.getItem("settings"),
       );
 
-      async function defineSettings() {
-        let Json = await (await fetch("default/settings.JSON")).json();
-
-        if (
-          typeof settings !== "object" &&
-          settings !== null &&
-          !Array.isArray(settings)
-        ) {
-          settings = {};
-        }
-
-        getObjKeys(Json, settings);
-
-        function getObjKeys(referenceObj, brokenObj) {
-          Object.entries(referenceObj).forEach((element) => {
-            if (
-              typeof element[1] === "object" &&
-              element[1] !== null &&
-              !Array.isArray(element[1])
-            ) {
-              if (brokenObj?.[element[0]] === undefined) {
-                brokenObj[element[0]] = element[1];
-                return;
-              }
-              getObjKeys(element[1], brokenObj[element[0]]);
-            } else {
-              if (brokenObj[element[0]] == undefined) {
-                brokenObj[element[0]] = element[1];
-              }
-            }
-          });
-        }
-
-        getObjKeys(
-          {
-            controls: {
-              swipeThreshold: {
-                val:
-                  ((deviceInfo.aspectRatio < canvas.width / canvas.height
-                    ? deviceInfo.width
-                    : deviceInfo.height) /
-                    100) *
-                  settings.controls.swipeThreshold.mult,
-              },
-            },
-          },
-          settings,
-        );
-      }
-
       document.onkeydown = function (e) {
         if (e.repeat === false) {
           keyHandler(e.code, true);
@@ -613,8 +602,9 @@
           Key.state.right =
             false;
         //console.log(Key);
-        Key.state[Keybinds.state?.[inputKey]] = state;
-
+        if (Keybinds.state?.[inputKey] !== undefined) {
+          Key.state[Keybinds.state?.[inputKey]] = state;
+        }
         if (
           state &&
           Key.functions[Keybinds.functions?.[inputKey]] !== undefined
@@ -1010,49 +1000,150 @@
             ],
             css.mainMenu.buttonDiv,
           );
-        }
-        //keybindSettings();
+          function keybindSettings() {
+            css.menuText.innerText = "Change Keybinds";
 
-        function keybindSettings() {
-          css.menuText.innerText = "Change Keybinds";
-          let currentKeybinds = {};
+            menuButtonJs.id = 0;
+            grid.id = 0;
 
-          Object.entries(Keybinds).forEach((section) => {
-            currentKeybinds[section[0]] = {};
-            Object.entries(section[1]).forEach((element) => {
-              currentKeybinds[section[0]]?.[element[1]] === undefined
-                ? (currentKeybinds[section[0]][element[1]] = [element[0]])
-                : currentKeybinds[section[0]][element[1]].push(
-                    " " + element[0],
-                  );
-            });
-          });
+            createElements(
+              [
+                new menuButtonJs("Back", controlSettings),
+                new grid(getKeybinds()),
+              ],
+              css.mainMenu.buttonDiv,
+            );
+          }
 
-          //console.log(currentKeybinds);
-          let tableArr = [[]];
-          Object.entries(currentKeybinds).forEach((element) =>
-            tableArr.push([element[0], element[1], "Reset"]),
-          );
-          menuButtonJs.id = 0;
-          //console.log(new tableAssembler("key", tableArr));
-          createElements(
-            [
-              new menuButtonJs("Back", controlSettings),
-              new grid(currentKeybinds),
-              /*{
-                      type: "div",
-                      class: "tableWithHeader",
-                      children: [
-                        { type: "header", text: "idk" },
-                        gameSettings,
+          class grid {
+            static id = 0;
+            constructor(obj) {
+              this.type = "div";
+              this.className = "gridContainer";
+              this.children = [];
+              this.id = `grid_${grid.id++}`;
+              let n = 0;
 
-                        new tableAssembler("Keybinds", tableArr),
-                        new tableAssembler("Keybinds", tableArr),
-                      ],
-                    },*/
-            ],
-            css.mainMenu.buttonDiv,
-          );
+              Object.entries(obj).forEach((section) => {
+                this.children.push({
+                  type: "div",
+                  id: `grid_section_${n}`,
+                  className: "gridSection",
+                  children: [
+                    {
+                      type: "p",
+                      text: section[0],
+                      className: `gridSectionHeader`,
+                      id: `grid_section_header_${n++}`,
+                    },
+                  ],
+                });
+
+                Object.entries(section[1]).forEach((keybind) => {
+                  this.children[this.children.length - 1].children.push({
+                    type: "div",
+                    className: "gridSectionRow",
+                    id: `grid_section_row_${this.children[this.children.length - 1].children.length - 1}`,
+
+                    children: [
+                      {
+                        type: "p",
+                        id: `grid_section_bind_${n}`,
+                        text: `${keybind[0]}`,
+                      },
+                      {
+                        type: "div",
+                        id: `grid_section_binds_${n}`,
+                        children: [
+                          {
+                            type: "p",
+                            id: `grid_section_binds_text_${n}`,
+                            text: keybind[1].map((element, index) => {
+                              console.log(index);
+                              return `${index === 0 ? "" : " "}${element}`;
+                            }),
+                          },
+                        ],
+                      },
+                      new menuButtonJs("New Key", function () {
+                        this.innerText = "Press Key";
+                        document.addEventListener(
+                          "keydown",
+                          (e) => {
+                            this.innerText = "New Key";
+                            Keybinds[
+                              e.target.parentNode.parentNode.children[0].innerText
+                            ][e.code] =
+                              e.target.parentNode.children[0].innerText;
+
+                            e.target.parentNode.children[1].children[0].innerHTML =
+                              getKeybinds()[section[0]][keybind[0]].map(
+                                (element, index) => {
+                                  console.log(index);
+                                  return `${index === 0 ? "" : " "}${element}`;
+                                },
+                              );
+
+                            localStorage.setItem(
+                              "keybinds",
+                              JSON.stringify(Keybinds),
+                            );
+                          },
+                          { once: true },
+                        );
+                      }),
+                      new menuButtonJs(
+                        obj[section[0]][keybind[0]].length === 0
+                          ? "Default"
+                          : "Reset",
+
+                        async function (e) {
+                          let currentKeybinds = getKeybinds();
+                          if (
+                            currentKeybinds[section[0]][keybind[0]].length === 0
+                          ) {
+                            this.innerText = "Reset";
+
+                            await (await fetch(`${path}default/keybinds.JSON`))
+                              .json()
+                              .then((value) =>
+                                getKeybinds(value)[section[0]][
+                                  keybind[0]
+                                ].forEach(
+                                  (element) =>
+                                    (Keybinds[section[0]][element] =
+                                      keybind[0]),
+                                ),
+                              );
+                            this.parentNode.children[1].children[0].innerHTML =
+                              getKeybinds()[section[0]][keybind[0]].map(
+                                (element, index) => {
+                                  console.log(index);
+                                  return `${index === 0 ? "" : " "}${element}`;
+                                },
+                              );
+                          } else {
+                            this.innerText = "Default";
+                            currentKeybinds[section[0]][keybind[0]].forEach(
+                              (element) => {
+                                delete Keybinds[section[0]][element];
+                              },
+                            );
+                            this.parentNode.children[1].children[0].innerHTML =
+                              "";
+                          }
+                          localStorage.setItem(
+                            "keybinds",
+                            JSON.stringify(Keybinds),
+                          );
+                        },
+                      ),
+                    ],
+                  });
+                });
+              });
+            }
+          }
         }
 
         function languageSettings() {
@@ -1090,9 +1181,8 @@
         }
       }
 
-      class grid {
+      /*class grid {
         constructor(text) {
-          //console.log(text);
           this.type = "div";
           this.className = "gridContainer";
           this.children = [];
@@ -1103,7 +1193,7 @@
               type: "div",
               className: "gridTitle",
               text: section[0],
-            }); //new menuButtonJs(section[0]));
+            });
             Object.entries(section[1]).forEach((element) => {
               console.log(element[1]);
               this.children.push({
@@ -1122,6 +1212,27 @@
           });
         }
         div() {}
+      }*/
+
+      function getKeybinds(restore = false) {
+        return new (function () {
+          Object.entries(Key).forEach((section) => {
+            this[section[0]] = {};
+            Object.entries(section[1]).forEach((element) => {
+              if (element[0] === "undefined") {
+                console.log(element);
+              }
+              this[section[0]][element[0]] = [];
+            });
+            Object.entries(
+              typeof restore === "object"
+                ? restore[section[0]]
+                : Keybinds[section[0]],
+            ).forEach((element) => {
+              this[section[0]][element[1]].push(element[0]);
+            });
+          });
+        })();
       }
 
       function leaderBoardEntry(input) {
@@ -1252,17 +1363,23 @@
         Apples =
           settings.game.apples.count === 1
             ? [new Apple({ x: 230, y: 80 })]
-            : [
-                new Apple({ x: 210, y: 60 }),
-                new Apple({ x: 250, y: 60 }),
-                new Apple({ x: 230, y: 80 }),
-                new Apple({ x: 210, y: 100 }),
-                new Apple({ x: 250, y: 100 }),
-              ];
-
-        for (let n = 0; n < 75; n++) {
-          Apples.push(new Apple(null));
-        }
+            : (() => {
+                let tempArr = [];
+                for (let n = 0; n < settings.game.apples.count; n++) {
+                  tempArr.push(
+                    new Apple(
+                      [
+                        new Apple({ x: 210, y: 60 }),
+                        new Apple({ x: 250, y: 60 }),
+                        new Apple({ x: 230, y: 80 }),
+                        new Apple({ x: 210, y: 100 }),
+                        new Apple({ x: 250, y: 100 }),
+                      ][n],
+                    ),
+                  );
+                }
+                return tempArr;
+              })();
 
         settings.game.hardModeMult.val = 1;
         tickCounter = 0;
@@ -1435,17 +1552,76 @@
 
       //Game
 
-      async function Game() {
-        //only functions //wait for settings to load
-        resizeCanvas();
-        defineSettings().then(() => {
-          newGame();
-          pauseGame();
-          start = false;
+      async function defineKeybinds() {
+        if (localStorage.getItem("keybinds")) {
+          return JSON.parse(localStorage.getItem("keybinds"));
+        }
+        return await (await fetch(`${path}default/keybinds.JSON`)).json();
+      }
 
-          loadImages();
-          draw();
-          //dead();
+      async function defineSettings() {
+        let Json = await (await fetch(`${path}default/settings.JSON`)).json();
+
+        if (
+          typeof settings !== "object" &&
+          settings !== null &&
+          !Array.isArray(settings)
+        ) {
+          settings = {};
+        }
+
+        getObjKeys(Json, settings);
+
+        function getObjKeys(referenceObj, brokenObj) {
+          Object.entries(referenceObj).forEach((element) => {
+            if (
+              typeof element[1] === "object" &&
+              element[1] !== null &&
+              !Array.isArray(element[1])
+            ) {
+              if (brokenObj?.[element[0]] === undefined) {
+                brokenObj[element[0]] = element[1];
+                return;
+              }
+              getObjKeys(element[1], brokenObj[element[0]]);
+            } else {
+              if (brokenObj[element[0]] == undefined) {
+                brokenObj[element[0]] = element[1];
+              }
+            }
+          });
+        }
+
+        getObjKeys(
+          {
+            controls: {
+              swipeThreshold: {
+                val:
+                  ((deviceInfo.aspectRatio < canvas.width / canvas.height
+                    ? deviceInfo.width
+                    : deviceInfo.height) /
+                    100) *
+                  settings.controls.swipeThreshold.mult,
+              },
+            },
+          },
+          settings,
+        );
+      }
+
+      async function Game() {
+        //only functions //wait for default to load
+        resizeCanvas();
+        defineKeybinds().then((value) => {
+          Keybinds = value;
+          defineSettings().then(() => {
+            newGame();
+            pauseGame();
+            start = false;
+
+            loadImages();
+            draw();
+          });
         });
       }
 
@@ -1977,6 +2153,15 @@
                             div w reset, name of button scroll allowed
 
 
+
+
+
+
+                              keybinds:
+
+                               reset and default all
+
+                    settings obj editing (for super nerds like u bc otherwise u should use the gui
                                     */
     </script>
   </body>
