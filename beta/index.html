@@ -1243,7 +1243,15 @@
           css.menuText.innerText = "Dev Settings";
           menuButtonJs.id = 0;
           createElements(
-            [new menuButtonJs("Back", settingsMenu)],
+            [
+              new menuButtonJs("Back", settingsMenu),
+              new menuButtonJs(`Touch: ${settings.dev.touchbox}`, (e) => {
+                console.log(settings.dev.touchbox);
+                settings.dev.touchbox = !settings.dev.touchbox;
+                e.target.innerText = `Touch: ${settings.dev.touchbox}`;
+                localStorage.setItem("settings", JSON.stringify(settings));
+              }),
+            ],
             css.mainMenu.buttonDiv,
           );
         }
