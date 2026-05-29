@@ -13,5 +13,7 @@
             "val": null
         }
     } ,
-    "arr": [1, 2, 3]
+    "dev":{
+        "touchbox": false
+    }
 }
