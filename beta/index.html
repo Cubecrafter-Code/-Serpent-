@@ -118,8 +118,8 @@
     </div>
     <style>
       /** {
-        outline: 1px solid red;
-      }*/
+              outline: 1px solid red;
+            }*/
 
       [hidden] {
         display: none !important;
@@ -271,42 +271,126 @@
         background: #ff0000aa;
       }
 
-      .gridContainer {
-        width: 100%;
-        display: grid;
-        grid-gap: 10px;
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
-        grid-auto-rows: auto;
+      .sliderContainer {
+        display: flex;
+        background-color: black;
+        margin: 10px;
+        padding: 10px;
+        align-self: stretch;
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+        justify-items: center;
+        align-items: center;
+        padding: 10px;
       }
 
-      .gridTitle {
-        margin-top: 20px;
-        grid-column: 1 / -1;
-        background: linear-gradient(lime, rgb(13, 134, 64), lime);
-
-        justify-self: center;
-        padding: 10px 25% 10px 25%;
+      .sliderContainer p {
+        padding-right: 10px;
+        margin: 0;
         width: fit-content;
+        white-space: pre;
+      }
+
+      .sliderContainer input {
+        width: stretch;
+      }
+
+      .gridContainer {
+        padding: 10px;
+
+        flex: 1;
+
+        height: fit-content;
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
+        display: grid;
+        grid-gap: 10px;
+        grid-template-columns: repeat(4, minmax(1px, 1fr));
+        grid-auto-rows: min-content;
+
+        margin: 10px;
+      }
+
+      .gridContainer .gridSection {
+        grid-column: 1/-1;
+        display: grid;
+        grid-template-columns: subgrid;
+
+        background: linear-gradient(90deg, pink, magenta, pink);
+        padding: 10px;
+        margin: 10px;
+        min-height: 0;
+
+        border: solid;
+        border-color: purple;
+        border-width: 5px;
+        border-radius: 20px;
+        justify-items: center;
+      }
+
+      .gridContainer .gridSectionHeader {
+        grid-column: 1/-1;
+        background: linear-gradient(yellow, orange, yellow);
+        padding: 10px;
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+        top: 10px;
         position: sticky;
-        margin: 40px 10px 25px 10px;
-        top: 0px;
+        width: fit-content;
+      }
+
+      .gridSectionRow {
+        grid-column: span 4;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-auto-rows: max-content;
+        grid-gap: 10px;
+
+        margin: 20px;
+        min-height: 0;
+
+        background: linear-gradient(lime, rgb(13, 134, 64), lime);
 
         border: solid;
         border-color: green;
         border-width: 5px;
         border-radius: 20px;
-      }
 
-      .gridWrap {
-        white-space: normal;
-        overflow-wrap: break-all;
-      }
-
-      .gridContainer div {
-        height: fit-content;
-        display: flex;
+        overflow: hidden;
         align-items: center;
-        justify-content: center;
+        justify-items: center;
+      }
+
+      .gridSectionRow div {
+        width: 100%;
+
+        contain: size;
+        overflow-y: scroll;
+        align-content: center;
+
+        scrollbar-width: thin;
+
+        min-height: 0;
+        height: 100%;
+      }
+
+      .gridSectionRow div p {
+        margin: 0;
+        height: fit-content;
+        word-wrap: break-word;
+      }
+
+      .gridSectionRow button {
+        width: 100%;
       }
 
       .table {
@@ -373,7 +457,55 @@
       }
     </style>
     <script>
-      const path = `/${window.location.pathname.split("/")[1]}/`
+      let placeholderCount = 0;
+      function placeholder() {
+        //console.error(new Error(`placeholder: ${placeholderCount}`));
+        return `${placeholderCount++}`;
+      }
+
+      function changeVal(e) {
+        console.log(this, e);
+      }
+
+      class slider {
+        static id = 0;
+        constructor(text, obj, val) {
+          //max,min,step
+          this.elementType = "div";
+          this.id = `slider_${slider.id++}`;
+          this.className = "sliderContainer";
+
+          this.children = [
+            {
+              elementType: "p",
+              id: placeholder(),
+              text: `${text}: ${" ".repeat(3 - `${obj[val]}`.length)}${obj[val]}`,
+            },
+            {
+              elementType: "input",
+              type: "range",
+              min: 1,
+              max: 100,
+              value: obj[val],
+              id: placeholder(),
+              oninput: (e) => {
+                obj[val] = Number(e.target.value); //TODO Add funtion where f(100) = 10, f(1) = 0.1
+
+                e.target.parentNode.children[0].innerText = `${text}: ${" ".repeat(3 - `${e.target.value}`.length)}${e.target.value}`;
+                settings.controls.swipeThreshold.val =
+                  (((deviceInfo.aspectRatio < canvas.width / canvas.height
+                    ? deviceInfo.width
+                    : deviceInfo.height) /
+                    100) *
+                    settings.controls.swipeThreshold.mult) /
+                  10;
+                localStorage.setItem("settings", JSON.stringify(settings));
+              },
+            },
+          ];
+        }
+      }
+      const path = `/${window.location.pathname.split("/")[1]}/`;
       let canvas = document.getElementById("canvas1");
       let ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
@@ -441,31 +573,13 @@
         },
         functions: {
           pause: pauseGame,
-          scoreUp: function () {
+          /*scoreUp: function () {
             Snake.segmentCount++;
-          },
+          },*/
         },
       };
 
-      let Keybinds = {
-        state: {
-          KeyW: "up",
-          KeyA: "left",
-          KeyS: "down",
-          KeyD: "right",
-
-          ArrowUp: "up",
-          ArrowLeft: "left",
-          ArrowDown: "down",
-          ArrowRight: "right",
-
-          LMB: "swipe",
-        },
-        functions: {
-          Escape: "pause",
-          KeyP: "scoreUp",
-        },
-      };
+      let Keybinds;
 
       let leaderboardArr = localStorage.getItem("leaderboardArray")
         ? JSON.parse(localStorage.getItem("leaderboardArray"))
@@ -546,56 +660,6 @@
           : localStorage.getItem("settings"),
       );
 
-      async function defineSettings() {
-        let Json = await (await fetch(`${path}default/settings.JSON`)).json();
-
-        if (
-          typeof settings !== "object" &&
-          settings !== null &&
-          !Array.isArray(settings)
-        ) {
-          settings = {};
-        }
-
-        getObjKeys(Json, settings);
-
-        function getObjKeys(referenceObj, brokenObj) {
-          Object.entries(referenceObj).forEach((element) => {
-            if (
-              typeof element[1] === "object" &&
-              element[1] !== null &&
-              !Array.isArray(element[1])
-            ) {
-              if (brokenObj?.[element[0]] === undefined) {
-                brokenObj[element[0]] = element[1];
-                return;
-              }
-              getObjKeys(element[1], brokenObj[element[0]]);
-            } else {
-              if (brokenObj[element[0]] == undefined) {
-                brokenObj[element[0]] = element[1];
-              }
-            }
-          });
-        }
-
-        getObjKeys(
-          {
-            controls: {
-              swipeThreshold: {
-                val:
-                  ((deviceInfo.aspectRatio < canvas.width / canvas.height
-                    ? deviceInfo.width
-                    : deviceInfo.height) /
-                    100) *
-                  settings.controls.swipeThreshold.mult,
-              },
-            },
-          },
-          settings,
-        );
-      }
-
       document.onkeydown = function (e) {
         if (e.repeat === false) {
           keyHandler(e.code, true);
@@ -613,8 +677,9 @@
           Key.state.right =
             false;
         //console.log(Key);
-        Key.state[Keybinds.state?.[inputKey]] = state;
-
+        if (Keybinds.state?.[inputKey] !== undefined) {
+          Key.state[Keybinds.state?.[inputKey]] = state;
+        }
         if (
           state &&
           Key.functions[Keybinds.functions?.[inputKey]] !== undefined
@@ -634,6 +699,7 @@
       }
 
       document.addEventListener("mousedown", function (e) {
+        startTouch(e);
         keyHandler("LMB", true);
       });
 
@@ -700,7 +766,7 @@
         }
         let tempCounter = 0;
         for (const element of elementArr) {
-          let tempElement = document.createElement(element.type);
+          let tempElement = document.createElement(element.elementType);
 
           element?.id
             ? (tempElement.id = element.id)
@@ -708,7 +774,7 @@
 
           for (const property in element) {
             switch (property) {
-              case "type": {
+              case "elementType": {
                 break;
               }
               case "id": {
@@ -725,8 +791,9 @@
                 tempElement.className = element[property];
                 break;
               }
-              case "onclick": {
+              case property.startsWith("on") ? property : null: {
                 //on rule expand later
+                console.log(property);
                 tempElement[`${property}`] = element[property];
                 break;
               }
@@ -748,7 +815,7 @@
       class menuButtonJs {
         static id = 0;
         constructor(text, onclick, hidden = false) {
-          this.type = "button";
+          this.elementType = "button";
           this.text = text;
           this.className = "menuButton";
           this.onclick = onclick;
@@ -762,7 +829,7 @@
       class inputButton {
         static id = 0;
         constructor(text, onclick, val) {
-          this.type = "div";
+          this.elementType = "div";
           this.className = "wrapper state0";
           this.id = `inputButton_${inputButton.id}`;
 
@@ -774,7 +841,7 @@
               },
             ),
             {
-              type: "input",
+              elementType: "input",
               className: "menuButton input",
               placeholder: text,
               id: `input_${inputButton.id}`,
@@ -845,8 +912,8 @@
             new menuButtonJs("Game", gameSettings),
             //new menuButtonJs("Graphics", graphicsSettings),
             new menuButtonJs("Controls", controlSettings),
-            /*new menuButtonJs("Language", languageSettings),
-                  new menuButtonJs("Dev", devSettings),*/
+            //new menuButtonJs("Language", languageSettings),
+            new menuButtonJs("Dev", devSettings),
             //cookies
           ],
           css.mainMenu.buttonDiv,
@@ -856,19 +923,19 @@
           class chooseButton {
             static id = 0;
             constructor(onclick) {
-              this.type = "div";
+              this.elementType = "div";
               this.id = `chooseButton_${chooseButton.id++}`;
 
               this.className = "chooseButtonDiv";
 
               this.children = [
-                { type: "p", id: "chooseButtonText", text: "Apples: " },
+                { elementType: "p", id: "chooseButtonText", text: "Apples: " },
                 {
-                  type: "div",
+                  elementType: "div",
                   id: `${this.id}_buttonDiv`,
                   children: [
                     {
-                      type: "button",
+                      elementType: "button",
                       id: "1",
                       class: "",
                       onclick: (e) => {
@@ -878,7 +945,7 @@
                       text: "1",
                     },
                     {
-                      type: "button",
+                      elementType: "button",
                       id: "5",
                       class: "",
                       onclick: (e) => {
@@ -888,7 +955,7 @@
                       text: "5",
                     },
                     {
-                      type: "button",
+                      elementType: "button",
                       id: "hydra",
                       class: settings.game.apples.hydra ? "selected" : "",
                       onclick: (e) => {
@@ -1003,56 +1070,164 @@
         function controlSettings() {
           css.menuText.innerText = "Controls";
           menuButtonJs.id = 0;
+          slider.id = 0;
           createElements(
             [
               new menuButtonJs("Back", settingsMenu),
+              new slider(
+                "Sensitivity",
+                settings.controls.swipeThreshold,
+                "mult",
+              ),
               new menuButtonJs("Keybinds", keybindSettings),
             ],
             css.mainMenu.buttonDiv,
           );
-        }
-        //keybindSettings();
 
-        function keybindSettings() {
-          css.menuText.innerText = "Change Keybinds";
-          let currentKeybinds = {};
+          function keybindSettings() {
+            css.menuText.innerText = "Change Keybinds";
 
-          Object.entries(Keybinds).forEach((section) => {
-            currentKeybinds[section[0]] = {};
-            Object.entries(section[1]).forEach((element) => {
-              currentKeybinds[section[0]]?.[element[1]] === undefined
-                ? (currentKeybinds[section[0]][element[1]] = [element[0]])
-                : currentKeybinds[section[0]][element[1]].push(
-                    " " + element[0],
-                  );
-            });
-          });
+            menuButtonJs.id = 0;
+            grid.id = 0;
 
-          //console.log(currentKeybinds);
-          let tableArr = [[]];
-          Object.entries(currentKeybinds).forEach((element) =>
-            tableArr.push([element[0], element[1], "Reset"]),
-          );
-          menuButtonJs.id = 0;
-          //console.log(new tableAssembler("key", tableArr));
-          createElements(
-            [
-              new menuButtonJs("Back", controlSettings),
-              new grid(currentKeybinds),
-              /*{
-                      type: "div",
-                      class: "tableWithHeader",
-                      children: [
-                        { type: "header", text: "idk" },
-                        gameSettings,
+            createElements(
+              [
+                new menuButtonJs("Back", controlSettings),
+                new grid(getKeybinds()),
+              ],
+              css.mainMenu.buttonDiv,
+            );
+          }
 
-                        new tableAssembler("Keybinds", tableArr),
-                        new tableAssembler("Keybinds", tableArr),
-                      ],
-                    },*/
-            ],
-            css.mainMenu.buttonDiv,
-          );
+          class grid {
+            static id = 0;
+            constructor(obj) {
+              this.elementType = "div";
+              this.className = "gridContainer";
+              this.children = [];
+              this.id = `grid_${grid.id++}`;
+              let n = 0;
+
+              Object.entries(obj).forEach((section) => {
+                this.children.push({
+                  elementType: "div",
+                  id: `grid_section_${n}`,
+                  className: "gridSection",
+                  children: [
+                    {
+                      elementType: "p",
+                      text: section[0],
+                      className: `gridSectionHeader`,
+                      id: `grid_section_header_${n++}`,
+                    },
+                  ],
+                });
+
+                Object.entries(section[1]).forEach((keybind) => {
+                  this.children[this.children.length - 1].children.push({
+                    elementType: "div",
+                    className: "gridSectionRow",
+                    id: `grid_section_row_${this.children[this.children.length - 1].children.length - 1}`,
+
+                    children: [
+                      {
+                        elementType: "p",
+                        id: `grid_section_bind_${n}`,
+                        text: `${keybind[0]}`,
+                      },
+                      {
+                        elementType: "div",
+                        id: `grid_section_binds_${n}`,
+                        children: [
+                          {
+                            elementType: "p",
+                            id: `grid_section_binds_text_${n}`,
+                            text: keybind[1].map((element, index) => {
+                              console.log(index);
+                              return `${index === 0 ? "" : " "}${element}`;
+                            }),
+                          },
+                        ],
+                      },
+                      new menuButtonJs("New Key", function () {
+                        this.innerText = "Press Key";
+                        document.addEventListener(
+                          "keydown",
+                          (e) => {
+                            this.innerText = "New Key";
+                            Keybinds[
+                              e.target.parentNode.parentNode.children[0].innerText
+                            ][e.code] =
+                              e.target.parentNode.children[0].innerText;
+
+                            e.target.parentNode.children[1].children[0].innerHTML =
+                              getKeybinds()[section[0]][keybind[0]].map(
+                                (element, index) => {
+                                  console.log(index);
+                                  return `${index === 0 ? "" : " "}${element}`;
+                                },
+                              );
+
+                            localStorage.setItem(
+                              "keybinds",
+                              JSON.stringify(Keybinds),
+                            );
+                          },
+                          { once: true },
+                        );
+                      }),
+                      new menuButtonJs(
+                        obj[section[0]][keybind[0]].length === 0
+                          ? "Default"
+                          : "Reset",
+
+                        async function (e) {
+                          let currentKeybinds = getKeybinds();
+                          if (
+                            currentKeybinds[section[0]][keybind[0]].length === 0
+                          ) {
+                            this.innerText = "Reset";
+
+                            await (await fetch(`${path}default/keybinds.JSON`))
+                              .json()
+                              .then((value) =>
+                                getKeybinds(value)[section[0]][
+                                  keybind[0]
+                                ].forEach(
+                                  (element) =>
+                                    (Keybinds[section[0]][element] =
+                                      keybind[0]),
+                                ),
+                              );
+                            this.parentNode.children[1].children[0].innerHTML =
+                              getKeybinds()[section[0]][keybind[0]].map(
+                                (element, index) => {
+                                  console.log(index);
+                                  return `${index === 0 ? "" : " "}${element}`;
+                                },
+                              );
+                          } else {
+                            this.innerText = "Default";
+                            currentKeybinds[section[0]][keybind[0]].forEach(
+                              (element) => {
+                                delete Keybinds[section[0]][element];
+                              },
+                            );
+                            this.parentNode.children[1].children[0].innerHTML =
+                              "";
+                          }
+                          localStorage.setItem(
+                            "keybinds",
+                            JSON.stringify(Keybinds),
+                          );
+                        },
+                      ),
+                    ],
+                  });
+                });
+              });
+            }
+          }
         }
 
         function languageSettings() {
@@ -1090,38 +1265,25 @@
         }
       }
 
-      class grid {
-        constructor(text) {
-          //console.log(text);
-          this.type = "div";
-          this.className = "gridContainer";
-          this.children = [];
-
-          Object.entries(text).forEach((section) => {
-            console.log(section[1]);
-            this.children.push({
-              type: "div",
-              className: "gridTitle",
-              text: section[0],
-            }); //new menuButtonJs(section[0]));
+      function getKeybinds(restore = false) {
+        return new (function () {
+          Object.entries(Key).forEach((section) => {
+            this[section[0]] = {};
             Object.entries(section[1]).forEach((element) => {
-              console.log(element[1]);
-              this.children.push({
-                type: "div",
-                text: element[0],
-                className: "menuButton",
-              });
-              this.children.push({
-                type: "div",
-                text: element[1],
-                className: "menuButton gridWrap",
-              });
-              this.children.push(new menuButtonJs("New Key"));
-              this.children.push(new menuButtonJs("Reset"));
+              if (element[0] === "undefined") {
+                console.log(element);
+              }
+              this[section[0]][element[0]] = [];
+            });
+            Object.entries(
+              typeof restore === "object"
+                ? restore[section[0]]
+                : Keybinds[section[0]],
+            ).forEach((element) => {
+              this[section[0]][element[1]].push(element[0]);
             });
           });
-        }
-        div() {}
+        })();
       }
 
       function leaderBoardEntry(input) {
@@ -1185,20 +1347,20 @@
 
       class tableAssembler {
         constructor(id, text, widthArr = [25, 50, 25]) {
-          this.type = "table";
+          this.elementType = "table";
           this.className = "table";
           this.id = id;
           this.children = [];
 
           for (let n = 0; n < text.length; n++) {
             this.children.push({
-              type: "tr",
+              elementType: "tr",
               className: "tableRow",
               children: [],
             });
             for (let i = 0; i < text[n].length; i++) {
               this.children[n].children.push({
-                type: `${n === 0 ? "th" : "td"}`,
+                elementType: `${n === 0 ? "th" : "td"}`,
                 text: text[n][i],
                 className: "tableData",
                 id: null,
@@ -1206,11 +1368,11 @@
             }
           }
           this.children.push({
-            type: "colgroup",
+            elementType: "colgroup",
             children: [
-              { type: "col", width: "25%" },
-              { type: "col", width: "50%" },
-              { type: "col", width: "25%" },
+              { elementType: "col", width: "25%" },
+              { elementType: "col", width: "50%" },
+              { elementType: "col", width: "25%" },
             ],
           });
         }
@@ -1252,17 +1414,23 @@
         Apples =
           settings.game.apples.count === 1
             ? [new Apple({ x: 230, y: 80 })]
-            : [
-                new Apple({ x: 210, y: 60 }),
-                new Apple({ x: 250, y: 60 }),
-                new Apple({ x: 230, y: 80 }),
-                new Apple({ x: 210, y: 100 }),
-                new Apple({ x: 250, y: 100 }),
-              ];
-
-        for (let n = 0; n < 100; n++) {
-          Apples.push(new Apple(null));
-        }
+            : (() => {
+                let tempArr = [];
+                for (let n = 0; n < settings.game.apples.count; n++) {
+                  tempArr.push(
+                    new Apple(
+                      [
+                        new Apple({ x: 210, y: 60 }),
+                        new Apple({ x: 250, y: 60 }),
+                        new Apple({ x: 230, y: 80 }),
+                        new Apple({ x: 210, y: 100 }),
+                        new Apple({ x: 250, y: 100 }),
+                      ][n],
+                    ),
+                  );
+                }
+                return tempArr;
+              })();
 
         settings.game.hardModeMult.val = 1;
         tickCounter = 0;
@@ -1435,17 +1603,67 @@
 
       //Game
 
-      async function Game() {
-        //only functions //wait for settings to load
-        resizeCanvas();
-        defineSettings().then(() => {
-          newGame();
-          pauseGame();
-          start = false;
+      async function defineKeybinds() {
+        if (localStorage.getItem("keybinds")) {
+          return JSON.parse(localStorage.getItem("keybinds"));
+        }
+        return await (await fetch(`${path}default/keybinds.JSON`)).json();
+      }
 
-          loadImages();
-          draw();
-          //dead();
+      async function defineSettings() {
+        let Json = await (await fetch(`${path}default/settings.JSON`)).json();
+
+        if (
+          typeof settings !== "object" &&
+          settings !== null &&
+          !Array.isArray(settings)
+        ) {
+          settings = {};
+        }
+
+        getObjKeys(Json, settings);
+
+        function getObjKeys(referenceObj, brokenObj) {
+          Object.entries(referenceObj).forEach((element) => {
+            if (
+              typeof element[1] === "object" &&
+              element[1] !== null &&
+              !Array.isArray(element[1])
+            ) {
+              if (brokenObj?.[element[0]] === undefined) {
+                brokenObj[element[0]] = element[1];
+                return;
+              }
+              getObjKeys(element[1], brokenObj[element[0]]);
+            } else {
+              if (brokenObj[element[0]] == undefined) {
+                brokenObj[element[0]] = element[1];
+              }
+            }
+          });
+        }
+
+        settings.controls.swipeThreshold.val =
+          ((deviceInfo.aspectRatio < canvas.width / canvas.height
+            ? deviceInfo.width
+            : deviceInfo.height) /
+            100) *
+          settings.controls.swipeThreshold.mult;
+      }
+
+      async function Game() {
+        //only functions //wait for default to load
+        resizeCanvas();
+        defineKeybinds().then((value) => {
+          Keybinds = value;
+          defineSettings().then(() => {
+            newGame();
+            pauseGame();
+            start = false;
+
+            loadImages();
+            draw();
+          });
         });
       }
 
@@ -1586,7 +1804,13 @@
 
       function checkCollision() {
         checkBodyCollision = () => {
-          if (adressTiles(Snake.x, Snake.y, "read").state === "segment") {
+          if (
+            adressTiles(Snake.x, Snake.y, "read").state === "segment" &&
+            !(
+              Snake.x === SnakeSegments[0].last.x &&
+              Snake.y === SnakeSegments[0].last.y
+            )
+          ) {
             dead();
           }
         };
@@ -1667,10 +1891,8 @@
           adressTiles(
             oldSegment?.last === undefined ? oldSegment.x : oldSegment.last.x,
             oldSegment?.last === undefined ? oldSegment.y : oldSegment.last.y,
-            "free", //removeoldSegment
+            "free",
           );
-
-          adressTiles(SnakeSegments[0].x, SnakeSegments[0].y, "free"); //state: "tail"
         }
       }
 
@@ -1798,11 +2020,11 @@
             ),
             new menuButtonJs("New Game", newGame),
             /*{
-              type: "div",
+              elementType: "div",
               className: "wrapper confirm",
               children: [
                 {
-                  type: "input",
+                  elementType: "input",
                   placeholder: "hi",
                   className: "menuButton input",
                 },
@@ -1866,7 +2088,7 @@
         let aspectRatioRatio =
           canvas.width / canvas.height / (deviceInfo.width / deviceInfo.height);
 
-        if (false) {
+        if (settings.dev.touchbox) {
           ctx.fillRect(
             touch.lastpos.x /
               ((deviceInfo.width * //real w to c w
@@ -1973,6 +2195,17 @@
                             div w reset, name of button scroll allowed
 
 
+
+
+
+
+                              keybinds:
+
+                              fix bug where eg up to KeyA but left is still KeyA 
+
+                               reset and default all
+
+                    settings obj editing (for super nerds like u bc otherwise u should use the gui
                                     */
     </script>
   </body>
