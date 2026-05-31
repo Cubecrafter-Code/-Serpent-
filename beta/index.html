@@ -132,7 +132,12 @@
         transform: translateX(-50%);
         top: 100px;
 
-        background: linear-gradient(90deg, chocolate, red, chocolate);
+        background: linear-gradient(
+          90deg,
+          rgba(210, 105, 30, 0.5),
+          rgba(255, 0, 0, 0.5),
+          rgba(210, 105, 30, 0.5)
+        );
         display: flex;
         flex-direction: column;
         text-align: center;
@@ -228,7 +233,6 @@
         margin: 10px;
         align-items: center;
         justify-content: center;
-        gap: 50px;
       }
 
       .chooseButtonDiv div button {
@@ -254,7 +258,7 @@
         flex: 1;
         margin-right: 10px;
 
-        background: linear-gradient(#ff0000, #990000, #ff0000);
+        background: #ff0000;
         border: solid;
         border-color: #8866dd;
         border-width: 3px;
@@ -268,7 +272,8 @@
       }
 
       .chooseButtonDiv .selected {
-        background: #ff0000aa;
+        color: white;
+        background: linear-gradient(#990000, #550000, #990000);
       }
 
       .sliderContainer {
@@ -457,54 +462,6 @@
       }
     </style>
     <script>
-      let placeholderCount = 0;
-      function placeholder() {
-        //console.error(new Error(`placeholder: ${placeholderCount}`));
-        return `${placeholderCount++}`;
-      }
-
-      function changeVal(e) {
-        console.log(this, e);
-      }
-
-      class slider {
-        static id = 0;
-        constructor(text, obj, val) {
-          //max,min,step
-          this.elementType = "div";
-          this.id = `slider_${slider.id++}`;
-          this.className = "sliderContainer";
-
-          this.children = [
-            {
-              elementType: "p",
-              id: placeholder(),
-              text: `${text}: ${" ".repeat(3 - `${obj[val]}`.length)}${obj[val]}`,
-            },
-            {
-              elementType: "input",
-              type: "range",
-              min: 1,
-              max: 100,
-              value: obj[val],
-              id: placeholder(),
-              oninput: (e) => {
-                obj[val] = Number(e.target.value); //TODO Add funtion where f(100) = 10, f(1) = 0.1
-
-                e.target.parentNode.children[0].innerText = `${text}: ${" ".repeat(3 - `${e.target.value}`.length)}${e.target.value}`;
-                settings.controls.swipeThreshold.val =
-                  (((deviceInfo.aspectRatio < canvas.width / canvas.height
-                    ? deviceInfo.width
-                    : deviceInfo.height) /
-                    100) *
-                    settings.controls.swipeThreshold.mult) /
-                  10;
-                localStorage.setItem("settings", JSON.stringify(settings));
-              },
-            },
-          ];
-        }
-      }
       const path = `/${window.location.pathname.split("/")[1]}/`;
       let canvas = document.getElementById("canvas1");
       let ctx = canvas.getContext("2d");
@@ -521,6 +478,21 @@
 
         canvas.style.width = baseWidth * scale + "px";
         canvas.style.height = baseHeight * scale + "px";
+
+        deviceInfo = {
+          width: window.innerWidth,
+          height: window.innerHeight,
+
+          aspectRatio: window.innerWidth / window.innerHeight,
+        };
+        console.log(deviceInfo.aspectRatio);
+        settings.controls.swipeThreshold.val =
+          (deviceInfo.aspectRatio < canvas.width / canvas.height
+            ? deviceInfo.width
+            : deviceInfo.height) /
+          (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
+            0.0587) /
+          10;
       }
 
       window.addEventListener("resize", resizeCanvas);
@@ -561,6 +533,11 @@
       css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
 
       let debugCounter = 0;
+      let placeholderCount = 0;
+      function placeholder() {
+        console.error(new Error(`placeholder: ${placeholderCount}`));
+        return `${placeholderCount++}`;
+      }
 
       let Key = {
         state: {
@@ -865,6 +842,291 @@
         }
       }
 
+      class chooseButton {
+        static id = 0;
+        constructor(onclick) {
+          this.elementType = "div";
+          this.id = `chooseButton_${chooseButton.id++}`;
+
+          this.className = "chooseButtonDiv";
+
+          this.children = [
+            { elementType: "p", id: "chooseButtonText", text: "Apples: " },
+            {
+              elementType: "div",
+              id: `${this.id}_buttonDiv_0`,
+              children: [
+                {
+                  elementType: "button",
+                  id: "1",
+                  class: "",
+                  onclick: (e) => {
+                    this.switchButton(e.target.id);
+                    onclick(1, "count", settings.game.apples);
+                  },
+                  text: "1",
+                },
+                {
+                  elementType: "button",
+                  id: "5",
+                  class: "",
+                  onclick: (e) => {
+                    this.switchButton(e.target.id);
+                    onclick(5, "count", settings.game.apples);
+                  },
+                  text: "5",
+                },
+              ],
+            },
+            {
+              elementType: "div",
+              id: `${this.id}_buttonDiv_1`,
+              children: [
+                {
+                  elementType: "button",
+                  id: "hydra",
+                  class: settings.game.apples.hydra ? "selected" : "",
+                  onclick: (e) => {
+                    this.switchButton(e.target.id);
+                    onclick(
+                      !settings.game.apples.hydra,
+                      "hydra",
+                      settings.game.apples,
+                    );
+                    onclick(1, "count", settings.game.apples);
+                  },
+                  text: "Hydra",
+                },
+              ],
+            },
+          ];
+
+          this.children[1].children[
+            `${settings.game.apples.count === 1 ? 0 : 1}`
+          ].className = "selected";
+        }
+        switchButton(elementId) {
+          console.log(document.getElementById(elementId));
+          switch (elementId) {
+            case "hydra":
+              console.log("hydra");
+              document.getElementById("hydra").className =
+                document.getElementById("hydra").className === ""
+                  ? "selected"
+                  : "";
+              break;
+
+            case "1":
+              console.log(1);
+              document.getElementById("5").className = "";
+
+            case "5":
+              console.log(5);
+              document.getElementById("1").className = "";
+
+            default:
+              document.getElementById(elementId).className = "selected";
+          }
+        }
+      }
+
+      class slider {
+        static id = 0;
+        constructor(text, obj, val) {
+          //max,min,step
+          this.elementType = "div";
+          this.id = `slider_${slider.id++}`;
+          this.className = "sliderContainer";
+
+          this.children = [
+            {
+              elementType: "p",
+              id: `${this.id}_p`,
+              text: `${text}: ${" ".repeat(3 - `${obj[val]}`.length)}${obj[val]}`,
+            },
+            {
+              elementType: "input",
+              type: "range",
+              min: 1,
+              max: 100,
+              value: obj[val],
+              id: `${this.id}_range`,
+              oninput: (e) => {
+                obj[val] = Number(e.target.value); //TODO Add funtion where f(100) = 10, f(1) = 0.1
+
+                e.target.parentNode.children[0].innerText = `${text}: ${" ".repeat(3 - `${e.target.value}`.length)}${e.target.value}`;
+                settings.controls.swipeThreshold.val =
+                  (deviceInfo.aspectRatio < canvas.width / canvas.height
+                    ? deviceInfo.width
+                    : deviceInfo.height) /
+                  (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
+                    0.0587) /
+                  10;
+                localStorage.setItem("settings", JSON.stringify(settings));
+              },
+            },
+          ];
+        }
+      }
+
+      class grid {
+        static id = 0;
+        constructor(obj) {
+          this.elementType = "div";
+          this.className = "gridContainer";
+          this.children = [];
+          this.id = `grid_${grid.id++}`;
+          let n = 0;
+
+          Object.entries(obj).forEach((section) => {
+            this.children.push({
+              elementType: "div",
+              id: `grid_section_${n}`,
+              className: "gridSection",
+              children: [
+                {
+                  elementType: "p",
+                  text: section[0],
+                  className: `gridSectionHeader`,
+                  id: `grid_section_header_${n++}`,
+                },
+              ],
+            });
+
+            Object.entries(section[1]).forEach((keybind) => {
+              this.children[this.children.length - 1].children.push({
+                elementType: "div",
+                className: "gridSectionRow",
+                id: `grid_section_row_${this.children[this.children.length - 1].children.length - 1}`,
+
+                children: [
+                  {
+                    elementType: "p",
+                    id: `grid_section_bind_${n}`,
+                    text: `${keybind[0]}`,
+                  },
+                  {
+                    elementType: "div",
+                    id: `grid_section_binds_${n}`,
+                    children: [
+                      {
+                        elementType: "p",
+                        id: `grid_section_binds_text_${n}`,
+                        text: keybind[1].map((element, index) => {
+                          console.log(index);
+                          return `${index === 0 ? "" : " "}${element}`;
+                        }),
+                      },
+                    ],
+                  },
+                  new menuButtonJs("New Key", function () {
+                    this.innerText = "Press Key";
+                    document.addEventListener(
+                      "keydown",
+                      (e) => {
+                        this.innerText = "New Key";
+                        Keybinds[
+                          e.target.parentNode.parentNode.children[0].innerText
+                        ][e.code] = e.target.parentNode.children[0].innerText;
+
+                        e.target.parentNode.children[1].children[0].innerHTML =
+                          getKeybinds()[section[0]][keybind[0]].map(
+                            (element, index) => {
+                              console.log(index);
+                              return `${index === 0 ? "" : " "}${element}`;
+                            },
+                          );
+
+                        localStorage.setItem(
+                          "keybinds",
+                          JSON.stringify(Keybinds),
+                        );
+                      },
+                      { once: true },
+                    );
+                  }),
+                  new menuButtonJs(
+                    obj[section[0]][keybind[0]].length === 0
+                      ? "Default"
+                      : "Reset",
+
+                    async function (e) {
+                      let currentKeybinds = getKeybinds();
+                      if (
+                        currentKeybinds[section[0]][keybind[0]].length === 0
+                      ) {
+                        this.innerText = "Reset";
+
+                        await (await fetch(`${path}default/keybinds.JSON`))
+                          .json()
+                          .then((value) =>
+                            getKeybinds(value)[section[0]][keybind[0]].forEach(
+                              (element) =>
+                                (Keybinds[section[0]][element] = keybind[0]),
+                            ),
+                          );
+                        this.parentNode.children[1].children[0].innerHTML =
+                          getKeybinds()[section[0]][keybind[0]].map(
+                            (element, index) => {
+                              console.log(index);
+                              return `${index === 0 ? "" : " "}${element}`;
+                            },
+                          );
+                      } else {
+                        this.innerText = "Default";
+                        currentKeybinds[section[0]][keybind[0]].forEach(
+                          (element) => {
+                            delete Keybinds[section[0]][element];
+                          },
+                        );
+                        this.parentNode.children[1].children[0].innerHTML = "";
+                      }
+                      localStorage.setItem(
+                        "keybinds",
+                        JSON.stringify(Keybinds),
+                      );
+                    },
+                  ),
+                ],
+              });
+            });
+          });
+        }
+      }
+
+      class tableAssembler {
+        constructor(id, text, widthArr = [25, 50, 25]) {
+          this.elementType = "table";
+          this.className = "table";
+          this.id = id;
+          this.children = [];
+
+          for (let n = 0; n < text.length; n++) {
+            this.children.push({
+              elementType: "tr",
+              className: "tableRow",
+              children: [],
+            });
+            for (let i = 0; i < text[n].length; i++) {
+              this.children[n].children.push({
+                elementType: `${n === 0 ? "th" : "td"}`,
+                text: text[n][i],
+                className: "tableData",
+                id: null,
+              });
+            }
+          }
+          this.children.push({
+            elementType: "colgroup",
+            children: [
+              { elementType: "col", width: "25%" },
+              { elementType: "col", width: "50%" },
+              { elementType: "col", width: "25%" },
+            ],
+          });
+        }
+      }
+
       function mainMenu() {
         menuButtonJs.id = 0;
         createElements(
@@ -910,8 +1172,8 @@
               mainMenu();
             }),
             new menuButtonJs("Game", gameSettings),
-            //new menuButtonJs("Graphics", graphicsSettings),
             new menuButtonJs("Controls", controlSettings),
+            new menuButtonJs("Graphics", graphicsSettings),
             //new menuButtonJs("Language", languageSettings),
             new menuButtonJs("Dev", devSettings),
             //cookies
@@ -920,87 +1182,6 @@
         );
 
         function gameSettings() {
-          class chooseButton {
-            static id = 0;
-            constructor(onclick) {
-              this.elementType = "div";
-              this.id = `chooseButton_${chooseButton.id++}`;
-
-              this.className = "chooseButtonDiv";
-
-              this.children = [
-                { elementType: "p", id: "chooseButtonText", text: "Apples: " },
-                {
-                  elementType: "div",
-                  id: `${this.id}_buttonDiv`,
-                  children: [
-                    {
-                      elementType: "button",
-                      id: "1",
-                      class: "",
-                      onclick: (e) => {
-                        this.switchButton(e.target.id);
-                        onclick(1, "count", settings.game.apples);
-                      },
-                      text: "1",
-                    },
-                    {
-                      elementType: "button",
-                      id: "5",
-                      class: "",
-                      onclick: (e) => {
-                        this.switchButton(e.target.id);
-                        onclick(5, "count", settings.game.apples);
-                      },
-                      text: "5",
-                    },
-                    {
-                      elementType: "button",
-                      id: "hydra",
-                      class: settings.game.apples.hydra ? "selected" : "",
-                      onclick: (e) => {
-                        this.switchButton(e.target.id);
-                        onclick(
-                          !settings.game.apples.hydra,
-                          "hydra",
-                          settings.game.apples,
-                        );
-                        onclick(1, "count", settings.game.apples);
-                      },
-                      text: "Hydra",
-                    },
-                  ],
-                },
-              ];
-
-              this.children[1].children[
-                `${settings.game.apples.count === 1 ? 0 : 1}`
-              ].className = "selected";
-            }
-            switchButton(elementId) {
-              console.log(document.getElementById(elementId));
-              switch (elementId) {
-                case "hydra":
-                  console.log("hydra");
-                  document.getElementById("hydra").className =
-                    document.getElementById("hydra").className === ""
-                      ? "selected"
-                      : "";
-                  break;
-
-                case "1":
-                  console.log(1);
-                  document.getElementById("5").className = "";
-
-                case "5":
-                  console.log(5);
-                  document.getElementById("1").className = "";
-
-                default:
-                  document.getElementById(elementId).className = "selected";
-              }
-            }
-          }
           css.menuText.innerText = "Game Settings";
           inputButton.id = 0;
           menuButtonJs.id = 0;
@@ -1062,7 +1243,20 @@
           css.menuText.innerText = "Graphics Settings";
           menuButtonJs.id = 0;
           createElements(
-            [new menuButtonJs("Back", settingsMenu)],
+            [
+              new menuButtonJs("Back", settingsMenu),
+              new menuButtonJs("Toggle Fullscreen", function (e) {
+                let allowed = true;
+                let element = e.target;
+                while (allowed) {
+                  if (element.parentNode === undefined) {
+                    allowed = false;
+                  } else {
+                    console.log((element = element.parentNode));
+                  }
+                }
+              }),
+            ],
             css.mainMenu.buttonDiv,
           );
         }
@@ -1097,136 +1291,6 @@
               ],
               css.mainMenu.buttonDiv,
             );
-          }
-
-          class grid {
-            static id = 0;
-            constructor(obj) {
-              this.elementType = "div";
-              this.className = "gridContainer";
-              this.children = [];
-              this.id = `grid_${grid.id++}`;
-              let n = 0;
-
-              Object.entries(obj).forEach((section) => {
-                this.children.push({
-                  elementType: "div",
-                  id: `grid_section_${n}`,
-                  className: "gridSection",
-                  children: [
-                    {
-                      elementType: "p",
-                      text: section[0],
-                      className: `gridSectionHeader`,
-                      id: `grid_section_header_${n++}`,
-                    },
-                  ],
-                });
-
-                Object.entries(section[1]).forEach((keybind) => {
-                  this.children[this.children.length - 1].children.push({
-                    elementType: "div",
-                    className: "gridSectionRow",
-                    id: `grid_section_row_${this.children[this.children.length - 1].children.length - 1}`,
-
-                    children: [
-                      {
-                        elementType: "p",
-                        id: `grid_section_bind_${n}`,
-                        text: `${keybind[0]}`,
-                      },
-                      {
-                        elementType: "div",
-                        id: `grid_section_binds_${n}`,
-                        children: [
-                          {
-                            elementType: "p",
-                            id: `grid_section_binds_text_${n}`,
-                            text: keybind[1].map((element, index) => {
-                              console.log(index);
-                              return `${index === 0 ? "" : " "}${element}`;
-                            }),
-                          },
-                        ],
-                      },
-                      new menuButtonJs("New Key", function () {
-                        this.innerText = "Press Key";
-                        document.addEventListener(
-                          "keydown",
-                          (e) => {
-                            this.innerText = "New Key";
-                            Keybinds[
-                              e.target.parentNode.parentNode.children[0].innerText
-                            ][e.code] =
-                              e.target.parentNode.children[0].innerText;
-
-                            e.target.parentNode.children[1].children[0].innerHTML =
-                              getKeybinds()[section[0]][keybind[0]].map(
-                                (element, index) => {
-                                  console.log(index);
-                                  return `${index === 0 ? "" : " "}${element}`;
-                                },
-                              );
-
-                            localStorage.setItem(
-                              "keybinds",
-                              JSON.stringify(Keybinds),
-                            );
-                          },
-                          { once: true },
-                        );
-                      }),
-                      new menuButtonJs(
-                        obj[section[0]][keybind[0]].length === 0
-                          ? "Default"
-                          : "Reset",
-
-                        async function (e) {
-                          let currentKeybinds = getKeybinds();
-                          if (
-                            currentKeybinds[section[0]][keybind[0]].length === 0
-                          ) {
-                            this.innerText = "Reset";
-
-                            await (await fetch(`${path}default/keybinds.JSON`))
-                              .json()
-                              .then((value) =>
-                                getKeybinds(value)[section[0]][
-                                  keybind[0]
-                                ].forEach(
-                                  (element) =>
-                                    (Keybinds[section[0]][element] =
-                                      keybind[0]),
-                                ),
-                              );
-                            this.parentNode.children[1].children[0].innerHTML =
-                              getKeybinds()[section[0]][keybind[0]].map(
-                                (element, index) => {
-                                  console.log(index);
-                                  return `${index === 0 ? "" : " "}${element}`;
-                                },
-                              );
-                          } else {
-                            this.innerText = "Default";
-                            currentKeybinds[section[0]][keybind[0]].forEach(
-                              (element) => {
-                                delete Keybinds[section[0]][element];
-                              },
-                            );
-                            this.parentNode.children[1].children[0].innerHTML =
-                              "";
-                          }
-                          localStorage.setItem(
-                            "keybinds",
-                            JSON.stringify(Keybinds),
-                          );
-                        },
-                      ),
-                    ],
-                  });
-                });
-              });
-            }
           }
         }
 
@@ -1351,39 +1415,6 @@
           css.mainMenu.buttonDiv,
         );
         css.tables.leaderboard = document.getElementById("leaderBoardTable");
-      }
-
-      class tableAssembler {
-        constructor(id, text, widthArr = [25, 50, 25]) {
-          this.elementType = "table";
-          this.className = "table";
-          this.id = id;
-          this.children = [];
-
-          for (let n = 0; n < text.length; n++) {
-            this.children.push({
-              elementType: "tr",
-              className: "tableRow",
-              children: [],
-            });
-            for (let i = 0; i < text[n].length; i++) {
-              this.children[n].children.push({
-                elementType: `${n === 0 ? "th" : "td"}`,
-                text: text[n][i],
-                className: "tableData",
-                id: null,
-              });
-            }
-          }
-          this.children.push({
-            elementType: "colgroup",
-            children: [
-              { elementType: "col", width: "25%" },
-              { elementType: "col", width: "50%" },
-              { elementType: "col", width: "25%" },
-            ],
-          });
-        }
       }
 
       function newGame(e = false) {
@@ -1652,11 +1683,12 @@
         }
 
         settings.controls.swipeThreshold.val =
-          ((deviceInfo.aspectRatio < canvas.width / canvas.height
+          (deviceInfo.aspectRatio < canvas.width / canvas.height
             ? deviceInfo.width
             : deviceInfo.height) /
-            100) *
-          settings.controls.swipeThreshold.mult;
+          (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
+            0.0587) /
+          10;
       }
 
       async function Game() {
@@ -2061,7 +2093,7 @@
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(backgroundImage, 0, 0);
-        //ctx.fillStyle = "#30ff30";
+
         //ctx.fillRect(map.start_x, map.start_y, map.width, map.height);
 
         rotate(SnakeSegments[0], {
@@ -2093,41 +2125,67 @@
           move(SnakeSegments[0]);
         }
 
-        let aspectRatioRatio =
-          canvas.width / canvas.height / (deviceInfo.width / deviceInfo.height);
-
         if (settings.dev.touchbox) {
+          let aspectRatioRatio;
           ctx.fillRect(
-            touch.lastpos.x /
-              ((deviceInfo.width * //real w to c w
-                (aspectRatioRatio < 1 ? aspectRatioRatio : 1)) /
-                canvas.width) -
-              (aspectRatioRatio < 1
-                ? canvas.width / (aspectRatioRatio - 1) / 2
-                : 0) -
-              swipeThresholdButForCanvas(),
+            screenToCanvasPx("width"),
+            screenToCanvasPx("height"),
 
-            touch.lastpos.y /
-              (deviceInfo.height /
-                (aspectRatioRatio > 1 ? aspectRatioRatio : 1) /
-                canvas.height) -
-              (aspectRatioRatio > 1
-                ? (canvas.height * (aspectRatioRatio - 1)) / 2
-                : 0) -
-              swipeThresholdButForCanvas(),
+            swipeThresholdButForCanvas("width") * 2,
+            swipeThresholdButForCanvas("height") * 2,
+          );
 
-            swipeThresholdButForCanvas() * 2, //front and back
-            swipeThresholdButForCanvas() * 2,
-          );
+          function screenToCanvasPx(dir) {
+            aspectRatioRatio =
+              dir === "height"
+                ? canvas.width /
+                  canvas.height /
+                  (deviceInfo.width / deviceInfo.height)
+                : deviceInfo.width /
+                  deviceInfo.height /
+                  (canvas.width / canvas.height);
+
+            let calc =
+              ((touch.lastpos[dir === "width" ? "x" : "y"] * canvas[dir]) /
+                deviceInfo[dir]) *
+              ((dir === "width" || dir === "height") && aspectRatioRatio > 1
+                ? aspectRatioRatio
+                : 1);
+
+            //calc ratio right
+
+            calc -=
+              aspectRatioRatio > 1
+                ? (canvas[dir] * (aspectRatioRatio - 1)) / 2
+                : 0;
+
+            //calc at mousepointer
+
+            calc -= swipeThresholdButForCanvas();
+
+            return calc;
+          }
+          function swipeThresholdButForCanvas() {
+            return (
+              settings.controls.swipeThreshold.val *
+              (canvas.width /
+                canvas.height /
+                (deviceInfo.width / deviceInfo.height) <
+              1
+                ? canvas.width /
+                  (canvas.width /
+                    canvas.height /
+                    (deviceInfo.width / deviceInfo.height)) /
+                  deviceInfo.width
+                : (canvas.height *
+                    (canvas.width /
+                      canvas.height /
+                      (deviceInfo.width / deviceInfo.height))) /
+                  deviceInfo.height)
+            );
+          }
         }
-        function swipeThresholdButForCanvas() {
-          return (
-            settings.controls.swipeThreshold.val *
-            (aspectRatioRatio < 1
-              ? canvas.width / aspectRatioRatio / deviceInfo.width
-              : (canvas.height * aspectRatioRatio) / deviceInfo.height)
-          );
-        }
+
         requestAnimationFrame(draw);
 
         function rotate(
@@ -2183,7 +2241,7 @@
           ctx.restore();
         }
       }
-
+      debugCounter = { true: 0, false: 0 };
       /*TODO
                            leaderboard (global)
 
@@ -2209,7 +2267,7 @@
 
                               keybinds:
 
-                              fix bug where eg up to KeyA but left is still KeyA 
+                              fix bug where eg up to KeyA but left is still KeyA
 
                                reset and default all
 
