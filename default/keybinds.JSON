@@ -10,9 +10,15 @@
     "ArrowDown": "down",
     "ArrowRight": "right",
 
+    "SwipeUp": "up",
+    "SwipeLeft": "left",
+    "SwipeDown": "down",
+    "SwipeRight": "right",
+
     "LMB": "swipe"
   },
   "functions": {
-    "Escape": "pause"
+    "Escape": "pause",
+    "KeyF": "toggleFullscreen"
   }
 }
