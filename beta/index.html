@@ -639,9 +639,7 @@
       };
 
       function keyHandler(inputKey, state) {
-        console.log(inputKey, state);
         if (state || inputKey === "LMB") {
-          console.log(inputKey);
           document.dispatchEvent(
             new CustomEvent("Snake:keyDown", {
               detail: { key: inputKey, state },
@@ -688,6 +686,8 @@
                 return "MouseWheel";
               case 3:
                 return "RMB";
+              default:
+                return `Mouse_${e.which}`;
             }
           })(),
           true,
@@ -700,15 +700,14 @@
 
       document.addEventListener("touchstart", function (e) {
         startTouch(e.touches[0]);
+        keyHandler("Touch", true);
       });
 
       function startTouch(e) {
-        if (Key.state.swipe) {
-          touch.lastpos = touch.currentpos = {
-            x: e.clientX,
-            y: e.clientY,
-          };
-        }
+        touch.lastpos = touch.currentpos = {
+          x: e.clientX,
+          y: e.clientY,
+        };
       }
 
       document.addEventListener("mousemove", function (e) {
@@ -729,6 +728,8 @@
                 return "MouseWheel";
               case 3:
                 return "RMB";
+              default:
+                return `Mouse_${e.which}`;
             }
           })(),
           false,
@@ -737,6 +738,7 @@
 
       function calcDir(e) {
         if (!Key.state.swipe) {
+          console.error("no Swipe");
           return;
         }
         touch.currentpos = {
@@ -2308,21 +2310,22 @@
                     statistics
                       4 fun
 
-                    leaderboard (global)
-                      win menu + time // and score
+                   
+win menu + time // and score
 
                     settings
                       choose all colors
 
-                    keybinds:
-                      change input that u can rebind swipe and u can rebind swipe directions with targetEvent or smthlt
-                      
                     settings obj editing (for super nerds like u bc otherwise u should use the gui
                     
-                    BUG FIX:
-                      textures Snake death
-                      wall wrap bug
+BUG FIX:
+  textures Snake death
+  wall wrap bug
 
+restore default key a bug
+                                                                          Someday:  
+                                                                                    Language
+                                                                                    leaderboard (global)
 
                                     */
     </script>
