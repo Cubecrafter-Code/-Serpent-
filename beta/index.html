@@ -274,6 +274,9 @@
       .chooseButtonDiv .selected {
         color: white;
         background: linear-gradient(#990000, #550000, #990000);
+        text-decoration: underline;
+        text-decoration-color: white;
+        text-decoration-thickness: 1px;
       }
 
       .sliderContainer {
@@ -738,7 +741,6 @@
 
       function calcDir(e) {
         if (!Key.state.swipe) {
-          console.error("no Swipe");
           return;
         }
         touch.currentpos = {
@@ -1120,8 +1122,30 @@
                           .json()
                           .then((value) =>
                             getKeybinds(value)[section[0]][keybind[0]].forEach(
-                              (element) =>
-                                (Keybinds[section[0]][element] = keybind[0]),
+                              (element) => {
+                                let oldKeybindText = document.getElementById(
+                                  `${e.target.parentNode.parentNode.parentNode.id}_section_row_${
+                                    Keybinds[section[0]][element]
+                                  }`,
+                                )?.children[1].children[0];
+
+                                console.log(element, oldKeybindText);
+
+                                Keybinds[section[0]][element] = keybind[0];
+                                if (oldKeybindText !== undefined) {
+                                  oldKeybindText.innerText =
+                                    oldKeybindText.innerText.replace(
+                                      oldKeybindText.innerText === element
+                                        ? element
+                                        : oldKeybindText.innerText.endsWith(
+                                              element,
+                                            )
+                                          ? `, ${element}`
+                                          : `${element}, `,
+                                      "",
+                                    );
+                                }
+                              },
                             ),
                           );
                         this.parentNode.children[1].children[0].innerHTML =
@@ -1139,10 +1163,10 @@
                         );
                         this.parentNode.children[1].children[0].innerHTML = "";
                       }
-                      localStorage.setItem(
+                      /*localStorage.setItem(
                         "keybinds",
                         JSON.stringify(Keybinds),
-                      );
+                      );*/
                     },
                   ),
                 ],
@@ -1725,7 +1749,7 @@
 
       async function defineSettings() {
         let Json = await (await fetch(`${path}default/settings.JSON`)).json();
-
+        console.log(Json);
         if (
           typeof settings !== "object" &&
           settings !== null &&
@@ -1767,7 +1791,21 @@
 
       async function Game() {
         //only functions //wait for default to load
-        resizeCanvas();
+
+        createElements(
+          [
+            {
+              elementType: "link",
+              rel: "icon",
+              id: "page_icon",
+              type: "images/ico",
+              href: `${path}textures/icon.ico`,
+            },
+          ],
+          document.head,
+          false,
+        );
+
         defineKeybinds().then((value) => {
           Keybinds = value;
           defineSettings().then(() => {
@@ -1775,6 +1813,7 @@
             pauseGame();
             start = false;
 
+            resizeCanvas();
             loadImages();
             draw();
           });
@@ -2164,6 +2203,7 @@
           x: 20,
           y: 0,
           angle: getInverseDir(SnakeSegments[0].angle),
+          connect: "tail",
         });
         rotate(SnakeSegments[1], {
           x: 0,
@@ -2184,7 +2224,12 @@
         });
 
         ctx.fillStyle = "#FF6A00";
-        rotate(Snake);
+        rotate(Snake, {
+          x: Snake.srcCoords.x,
+          y: Snake.srcCoords.y,
+          angle: Snake.angle,
+          connect: "head",
+        });
         if (!appleGrow) {
           move(SnakeSegments[0]);
         }
@@ -2259,6 +2304,7 @@
             y: imgObj.srcCoords.y,
             angle: imgObj.angle,
           },
+          wallWrap = true,
         ) {
           ctx.save();
           ctx.translate(imgObj.x, imgObj.y);
@@ -2278,16 +2324,21 @@
             imgObj.height < 0 ? imgObj.height : 0,
             imgObj.width < 0 ? imgObj.width : 0,
           );
-          if (imgObj === Snake) {
-            ctx.fillRect(7, 1, -tickCounter, 8);
-          }
-          if (imgObj === SnakeSegments[0]) {
-            ctx.fillRect(
-              3,
-              1,
-              appleGrow ? 0 : tickCounter - map.tile_length,
-              8,
-            );
+
+          switch (extraObj.connect) {
+            case "head": {
+              ctx.fillRect(7, 1, -tickCounter, 8);
+              break;
+            }
+            case "tail": {
+              ctx.fillRect(
+                3,
+                1,
+                appleGrow ? 0 : tickCounter - map.tile_length,
+                8,
+              );
+              break;
+            }
           }
 
           ctx.drawImage(
@@ -2303,6 +2354,39 @@
           );
 
           ctx.restore();
+
+          if (imgObj.x < map.start_x && wallWrap) {
+            console.log(
+              new (function () {
+                this.x = imgObj.x;
+                this.y = imgObj.y;
+                this.height = imgObj.height;
+                this.width = imgObj.width;
+                this.img = imgObj.img;
+              })(),
+              {
+                x: extraObj.x,
+                y: extraObj.y,
+                angle: extraObj.angle,
+              },
+            );
+            rotate(
+              new (function () {
+                this.x = imgObj.x + map.width;
+                this.y = imgObj.y;
+                this.height = imgObj.height;
+                this.width = imgObj.width;
+                this.img = imgObj.img;
+              })(),
+              {
+                x: extraObj.x,
+                y: extraObj.y,
+                angle: extraObj.angle,
+                connect: extraObj.connect,
+              },
+              false,
+            );
+          }
         }
       }
 
@@ -2322,11 +2406,12 @@ BUG FIX:
   textures Snake death
   wall wrap bug
 
-restore default key a bug
                                                                           Someday:  
                                                                                     Language
                                                                                     leaderboard (global)
 
+
+                                    speed slider / predetermined options
                                     */
     </script>
   </body>
