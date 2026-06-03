@@ -15,7 +15,8 @@
     "SwipeDown": "down",
     "SwipeRight": "right",
 
-    "LMB": "swipe"
+    "LMB": "swipe",
+    "Touch": "swipe"
   },
   "functions": {
     "Escape": "pause",
