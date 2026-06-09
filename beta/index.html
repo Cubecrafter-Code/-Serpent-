@@ -109,17 +109,6 @@
         background-color: #fff;
         border-radius: 2px;
       }
-    </style>
-  </head>
-  <body onload="Game()">
-    <div class="menu" id="mainMenu">
-      <header id="menuText"></header>
-      <div id="buttonDiv"></div>
-    </div>
-    <style>
-      /** {
-              outline: 1px solid red;
-            }*/
 
       [hidden] {
         display: none !important;
@@ -435,35 +424,42 @@
         font-weight: bold;
       }
 
-      .leaderboardTable .tableRow:nth-child(2) td {
+      .table .tableRow:nth-child(2) td {
         background: linear-gradient(90deg, #ffd700, #ffb300);
         color: #222;
         font-weight: bold;
       }
 
-      .leaderboardTable .tableRow:nth-child(3) td {
+      .table .tableRow:nth-child(3) td {
         background: linear-gradient(90deg, #c0c0c0, #9e9e9e);
         color: #222;
         font-weight: bold;
       }
 
-      .leaderboardTable .tableRow:nth-child(4) td {
+      .table .tableRow:nth-child(4) td {
         background: linear-gradient(90deg, #cd7f32, #a65e2e);
         color: #222;
         font-weight: bold;
       }
 
-      .leaderboardTable .tableRow:last-of-type td {
+      .table .tableRow:last-of-type td {
         background: linear-gradient(90deg, #7cfc00, #00ff00);
         color: #222;
         font-weight: bold;
       }
-      .leaderboardTable .tableRow:nth-child(2) td,
-      .leaderboardTable .tableRow:nth-child(3) td,
-      .leaderboardTable .tableRow:nth-child(4) td {
+      .table .tableRow:nth-child(2) td,
+      .table .tableRow:nth-child(3) td,
+      .table .tableRow:nth-child(4) td {
         border-bottom: 3px solid rgba(0, 0, 0, 0.2);
       }
     </style>
+  </head>
+  <body onload="Game()">
+    <div class="menu" id="mainMenu">
+      <header id="menuText"></header>
+      <div id="buttonDiv"></div>
+    </div>
+
     <script>
       const path = `/${window.location.pathname.split("/")[1]}/`;
       let canvas = document.getElementById("canvas1");
@@ -509,8 +505,7 @@
       let deviceInfo = {
         width: canvas.getBoundingClientRect().width,
         height: canvas.getBoundingClientRect().height,
-        /*resulutionMult:
-                screen.height / document.getElementById("canvas1").height,*/
+
         aspectRatio:
           canvas.getBoundingClientRect().width /
           canvas.getBoundingClientRect().height,
@@ -545,8 +540,8 @@
           pause: pauseGame,
           toggleFullscreen,
           /*scoreUp: function () {
-            Snake.segmentCount++;
-          },*/
+                  Snake.segmentCount++;
+                },*/
         },
       };
 
@@ -642,13 +637,11 @@
       };
 
       function keyHandler(inputKey, state) {
-        if (state || inputKey === "LMB") {
-          document.dispatchEvent(
-            new CustomEvent("Snake:keyDown", {
-              detail: { key: inputKey, state },
-            }),
-          );
-        }
+        document.dispatchEvent(
+          new CustomEvent("Snake:keyDown", {
+            detail: { key: inputKey, state },
+          }),
+        );
 
         Key.state.up =
           Key.state.left =
@@ -657,7 +650,7 @@
             false;
 
         if (Keybinds.state?.[inputKey] !== undefined) {
-          Key.state[Keybinds.state?.[inputKey]] = state;
+          Key.state[Keybinds.state[inputKey]] = state;
         }
         if (
           state &&
@@ -678,7 +671,6 @@
       }
 
       document.addEventListener("mousedown", function (e) {
-        startTouch(e);
         keyHandler(
           (() => {
             switch (e.which) {
@@ -702,16 +694,12 @@
       });
 
       document.addEventListener("touchstart", function (e) {
-        startTouch(e.touches[0]);
+        touch.lastpos = touch.currentpos = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
         keyHandler("Touch", true);
       });
-
-      function startTouch(e) {
-        touch.lastpos = touch.currentpos = {
-          x: e.clientX,
-          y: e.clientY,
-        };
-      }
 
       document.addEventListener("mousemove", function (e) {
         calcDir(e);
@@ -719,6 +707,10 @@
 
       document.addEventListener("touchmove", function (e) {
         calcDir(e.touches[0]);
+      });
+
+      document.addEventListener("touchend", function () {
+        keyHandler("Touch", false);
       });
 
       document.addEventListener("mouseup", function (e) {
@@ -740,13 +732,14 @@
       });
 
       function calcDir(e) {
-        if (!Key.state.swipe) {
-          return;
-        }
         touch.currentpos = {
           x: e.clientX,
           y: e.clientY,
         };
+        if (!Key.state.swipe) {
+          touch.lastpos = touch.currentpos;
+          return;
+        }
         let difference = {
           x: touch.currentpos.x - touch.lastpos.x,
           y: touch.currentpos.y - touch.lastpos.y,
@@ -1054,7 +1047,21 @@
                     document.addEventListener(
                       "Snake:keyDown",
                       function keyListener(e) {
-                        if (e.detail.key === "LMB" && e.detail.state) {
+                        console.log(
+                          Keybinds,
+                          section[0],
+                          e.detail.key,
+                          Keybinds[section[0]][e.detail.key],
+                          e.detail,
+                        );
+                        if (
+                          Keybinds[section[0]][e.detail.key] === "swipe" &&
+                          e.detail.state
+                        ) {
+                          console.error(
+                            Keybinds[section[0]][e.detail.key] === "swipe" &&
+                              e.detail.state,
+                          );
                           return;
                         }
 
@@ -1163,10 +1170,10 @@
                         );
                         this.parentNode.children[1].children[0].innerHTML = "";
                       }
-                      /*localStorage.setItem(
+                      localStorage.setItem(
                         "keybinds",
                         JSON.stringify(Keybinds),
-                      );*/
+                      );
                     },
                   ),
                 ],
@@ -1226,8 +1233,8 @@
             new menuButtonJs("Settings", settingsMenu),
             new menuButtonJs("Leaderboard", leaderboard),
             /*new menuButtonJs("Statistics", function () {
-                    debugButton(this);
-                  }),*/
+                          debugButton(this);
+                        }),*/
             new menuButtonJs("New Game", newGame),
             new menuButtonJs("Quit", quit),
           ],
@@ -1447,6 +1454,7 @@
                 ? restore[section[0]]
                 : Keybinds[section[0]],
             ).forEach((element) => {
+              console.log(this, section, element);
               this[section[0]][element[1]].push(element[0]);
             });
           });
@@ -1738,7 +1746,7 @@
         close();
       }
 
-      //Game
+      /*Game*/
 
       async function defineKeybinds() {
         if (localStorage.getItem("keybinds")) {
@@ -1865,8 +1873,8 @@
           this.width = map.tile_length;
           this.height = map.tile_length;
           this.angle = 0;
-          this.src = `${path}textures/Strawberry.png`;
-          this.srcCoords = { x: 0, y: 0 };
+          this.src = `${path}textures/Spreadsheet.png`;
+          this.srcCoords = { x: 20, y: 10 };
           this.img = new Image();
 
           this.img.src = this.src;
@@ -1882,7 +1890,7 @@
 
         updateloop = setTimeout(
           update,
-          (15 * settings.game.speedMult) /
+          (Key.state.swipe ? 500 : 15 * settings.game.speedMult) /
             (settings.game.hardModeMult.on
               ? settings.game.hardModeMult.val
               : 1),
@@ -1895,14 +1903,6 @@
           updateDirection();
           checkCollision();
 
-          /*if (
-            Apples.length !==
-            tiles.filter((element) => element.state === "apple").length
-          ) {
-            console.error(new Error("idwa"));
-
-            alive = false;
-          }*/
           Apples.forEach((apple, index) => {
             let msg = adressTiles(apple.x, apple.y, "read").state;
             if (msg !== "apple") {
@@ -2117,7 +2117,7 @@
             }
           }
         }
-        if (settings.game.hardModeMult.val < 2 && true) /*hard mode is on*/ {
+        if (settings.game.hardModeMult.val < 2 && true) {
           settings.game.hardModeMult.val += 0.04;
         }
       }
@@ -2162,23 +2162,6 @@
               leaderBoardEntry(getInputText(e, "string")),
             ),
             new menuButtonJs("New Game", newGame),
-            /*{
-              elementType: "div",
-              className: "wrapper confirm",
-              children: [
-                {
-                  elementType: "input",
-                  placeholder: "hi",
-                  className: "menuButton input",
-                },
-                new menuButtonJs("ok"),
-              ],
-            },*/
-            /*new tableAssembler("gameStats", [
-                    ["Rank", "", "smth"],
-                    ["Score", "", "smth"],
-                    ["ApplesEaten", "", "smth"],
-                  ]),*/
           ],
           css.mainMenu.buttonDiv,
         );
@@ -2204,11 +2187,15 @@
           y: 0,
           angle: getInverseDir(SnakeSegments[0].angle),
           connect: "tail",
+          width: map.tile_length,
+          height: map.tile_length,
         });
         rotate(SnakeSegments[1], {
           x: 0,
           y: 0,
           angle: getInverseDir(SnakeSegments[1].angle),
+          width: map.tile_length,
+          height: map.tile_length,
         });
         for (let n = 2; n < SnakeSegments.length - 1; n++) {
           rotate(SnakeSegments[n]);
@@ -2217,8 +2204,9 @@
           x: 0,
           y: 0,
           angle: SnakeSegments[SnakeSegments.length - 2].angle,
+          width: map.tile_length,
+          height: map.tile_length,
         });
-
         Apples.forEach((element) => {
           rotate(element);
         });
@@ -2229,6 +2217,8 @@
           y: Snake.srcCoords.y,
           angle: Snake.angle,
           connect: "head",
+          width: map.tile_length,
+          height: map.tile_length,
         });
         if (!appleGrow) {
           move(SnakeSegments[0]);
@@ -2302,10 +2292,83 @@
           extraObj = {
             x: imgObj.srcCoords.x,
             y: imgObj.srcCoords.y,
+            width: Math.abs(imgObj.width),
+            height: Math.abs(imgObj.height),
             angle: imgObj.angle,
           },
-          wallWrap = true,
         ) {
+          if (imgObj === "DONT DRAW!!!") {
+            return;
+          }
+          let wallWrap = false;
+          if (!extraObj?.width || !extraObj?.height) {
+            console.error(
+              new Error(
+                `Missing property w or h\nw: ${extraObj.width}\nh: ${extraObj.height}`,
+              ),
+            );
+          }
+          if (extraObj.connect === "tail" && imgObj.wallWrap !== true) {
+            extraObj.angle = getInverseDir(extraObj.angle);
+          }
+          if (
+            (imgObj.x < map.start_x ||
+              imgObj.x > map.start_x + map.width - map.tile_length ||
+              imgObj.y < map.start_y ||
+              imgObj.y > map.start_y + map.height - map.tile_length) &&
+            imgObj.wallWrap !== true
+          ) {
+            wallWrap = true;
+            rotate(
+              ...Object.entries(
+                new (function () {
+                  this.imgObj = {};
+                  this.extraObj = structuredClone(extraObj);
+                  if (
+                    imgObj.x < map.start_x ||
+                    imgObj.x > map.start_x + map.width - map.tile_length
+                  ) {
+                    this.imgObj.x =
+                      imgObj.x + map.width * (imgObj.x < map.start_x ? 1 : -1);
+                    this.imgObj.y = imgObj.y;
+
+                    extraObj.width =
+                      imgObj.x < this.imgObj.x
+                        ? map.tile_length + imgObj.x - map.start_x
+                        : map.start_x - this.imgObj.x;
+
+                    this.extraObj.width = imgObj.width - extraObj.width;
+                    this.extraObj.x += 10 - this.extraObj.width;
+                    this.imgObj.x +=
+                      (10 - this.extraObj.width) *
+                      (imgObj.x < map.start_x ? -1 : 1);
+                  } else {
+                    this.imgObj.x = imgObj.x;
+                    this.imgObj.y =
+                      imgObj.y + map.height * (imgObj.y < map.start_y ? 1 : -1);
+                    extraObj.width =
+                      imgObj.y < this.imgObj.y
+                        ? map.tile_length + imgObj.y - map.start_y
+                        : map.start_y - this.imgObj.y;
+
+                    this.extraObj.width = imgObj.width - extraObj.width;
+                    this.extraObj.x += 10 - this.extraObj.width;
+                    this.imgObj.y +=
+                      (10 - this.extraObj.width) *
+                      (imgObj.y < map.start_y ? -1 : 1);
+                  }
+
+                  this.extraObj.height = imgObj.height;
+                  this.imgObj.img = imgObj.img;
+                  this.imgObj.wallWrap = true;
+                  if (settings.game.walls) {
+                    this.imgObj = "DONT DRAW!!!";
+                  }
+                })(),
+              ).map((element) => element[1]),
+            );
+          }
+
           ctx.save();
           ctx.translate(imgObj.x, imgObj.y);
           ctx.rotate((extraObj.angle * Math.PI) / 180);
@@ -2315,7 +2378,6 @@
               ? -1 * map.tile_length
               : 0,
           );
-
           ctx.scale(
             imgObj.height / map.tile_length,
             imgObj.width / map.tile_length,
@@ -2325,94 +2387,82 @@
             imgObj.width < 0 ? imgObj.width : 0,
           );
 
-          switch (extraObj.connect) {
-            case "head": {
-              ctx.fillRect(7, 1, -tickCounter, 8);
-              break;
+          if (imgObj.wallWrap && settings.game.walls) {
+            switch (extraObj.connect) {
+              case "head": {
+                ctx.fillRect(0, 1, tickCounter > 3 ? tickCounter - 4 : 0, 8);
+                break;
+              }
+              case "tail": {
+                console.error("iafd0hwd");
+
+                ctx.fillRect(0, 1, tickCounter < 6 ? 3 : 0, 8);
+                break;
+              }
             }
-            case "tail": {
-              ctx.fillRect(
-                3,
-                1,
-                appleGrow ? 0 : tickCounter - map.tile_length,
-                8,
-              );
-              break;
+          } else {
+            switch (extraObj.connect) {
+              case "head": {
+                ctx.fillRect(
+                  7 + (wallWrap && tickCounter > 4 ? 4 - tickCounter : 0),
+                  1,
+                  wallWrap && tickCounter > 4 ? -7 : -tickCounter,
+                  8,
+                );
+                break;
+              }
+              case "tail": {
+                ctx.fillRect(
+                  3,
+                  1,
+                  appleGrow || (wallWrap && tickCounter > 3)
+                    ? 0
+                    : map.tile_length - tickCounter + (wallWrap ? -3 : 1),
+                  8,
+                );
+                break;
+              }
             }
           }
-
           ctx.drawImage(
             imgObj.img,
             extraObj.x,
             extraObj.y,
-            map.tile_length,
-            map.tile_length,
+            extraObj.width,
+            extraObj.height,
             0,
             0,
-            map.tile_length,
-            map.tile_length,
+            extraObj.width,
+            extraObj.height,
           );
 
           ctx.restore();
-
-          if (imgObj.x < map.start_x && wallWrap) {
-            console.log(
-              new (function () {
-                this.x = imgObj.x;
-                this.y = imgObj.y;
-                this.height = imgObj.height;
-                this.width = imgObj.width;
-                this.img = imgObj.img;
-              })(),
-              {
-                x: extraObj.x,
-                y: extraObj.y,
-                angle: extraObj.angle,
-              },
-            );
-            rotate(
-              new (function () {
-                this.x = imgObj.x + map.width;
-                this.y = imgObj.y;
-                this.height = imgObj.height;
-                this.width = imgObj.width;
-                this.img = imgObj.img;
-              })(),
-              {
-                x: extraObj.x,
-                y: extraObj.y,
-                angle: extraObj.angle,
-                connect: extraObj.connect,
-              },
-              false,
-            );
-          }
         }
       }
 
       /*TODO
-                    statistics
-                      4 fun
-
-                   
-win menu + time // and score
-
-                    settings
-                      choose all colors
-
-                    settings obj editing (for super nerds like u bc otherwise u should use the gui
-                    
-BUG FIX:
-  textures Snake death
-  wall wrap bug
-
-                                                                          Someday:  
-                                                                                    Language
-                                                                                    leaderboard (global)
+                          statistics
+                            4 fun
 
 
-                                    speed slider / predetermined options
-                                    */
+      win menu + time // and score
+
+                          settings
+                            choose all colors
+
+                          settings obj editing (for super nerds like u bc otherwise u should use the gui
+
+      BUG FIX:
+        textures Snake death
+        wall wrap bug
+
+                                                                                Someday:
+                                                                                          Language
+                                                                                          leaderboard (global)
+
+
+                                          speed slider / predetermined options
+                                          */
     </script>
   </body>
 </html>
