@@ -520,7 +520,6 @@
 
       css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
 
-      let debugCounter = 0;
       let placeholderCount = 0;
       function placeholder() {
         console.error(new Error(`placeholder: ${placeholderCount}`));
@@ -1890,10 +1889,12 @@
 
         updateloop = setTimeout(
           update,
-           15 * settings.game.speedMult /
-            (settings.game.hardModeMult.on
-              ? settings.game.hardModeMult.val
-              : 1),
+          Key.state.swipe
+            ? 500
+            : (15 * settings.game.speedMult) /
+                (settings.game.hardModeMult.on
+                  ? settings.game.hardModeMult.val
+                  : 1),
         );
 
         directionHandler();
@@ -1901,7 +1902,18 @@
 
         if (tickCounter >= map.tile_length) {
           updateDirection();
-          checkCollision();
+          checkCollision(Snake);
+
+          checkCollision(
+            new (function () {
+              this.x = Snake.x;
+              this.y = Snake.y;
+              this.angle = Snake.angle;
+              this.preview = true;
+              move(this);
+              return this;
+            })(),
+          );
 
           Apples.forEach((apple, index) => {
             let msg = adressTiles(apple.x, apple.y, "read").state;
@@ -1921,7 +1933,6 @@
           }
           updateTiles();
           manageSnakeSegments(Snake.x, Snake.y);
-
           tickCounter = 0;
         }
         tickCounter++;
@@ -1978,6 +1989,7 @@
         if (!obj?.last) {
           obj.last = { x: obj.x, y: obj.y };
         }
+
         switch (obj.angle) {
           case 0:
             obj.x = obj.last.x + tickCounter;
@@ -2006,8 +2018,43 @@
         }
       }
 
-      function checkCollision() {
+      function checkCollision(obj = Snake) {
         checkBodyCollision = () => {
+          if (
+            adressTiles(obj.x, obj.y, "read").state === "segment" &&
+            !(
+              obj.x === SnakeSegments[0].last.x &&
+              obj.y === SnakeSegments[0].last.y
+            ) &&
+            !(
+              obj?.preview &&
+              obj.x === SnakeSegments[1].x &&
+              obj.y === SnakeSegments[1].y
+            )
+          ) {
+            dead();
+          }
+        };
+
+        if (
+          obj.x < map.start_x ||
+          obj.x > map.start_x + map.width - map.tile_length ||
+          obj.y < map.start_y ||
+          obj.y > map.start_y + map.height - map.tile_length
+        ) {
+          if (settings.game.walls) {
+            dead();
+            return;
+          }
+          obj.x = ((obj.x + map.width - map.start_x) % map.width) + map.start_x;
+          obj.y =
+            ((obj.y + map.height - map.start_y) % map.height) + map.start_y;
+          checkBodyCollision();
+        }
+        checkBodyCollision();
+
+        /*
+ checkBodyCollision = () => {
           if (
             adressTiles(Snake.x, Snake.y, "read").state === "segment" &&
             !(
@@ -2018,6 +2065,8 @@
             dead();
           }
         };
+
+        
         if (Snake.x > map.start_x + map.width - map.tile_length) {
           if (settings.game.walls) {
             dead();
@@ -2055,6 +2104,7 @@
           return;
         }
         checkBodyCollision();
+       */
       }
 
       function manageSnakeSegments(x, y) {
@@ -2072,6 +2122,7 @@
       function updateTiles() {
         Snake.last.x = Snake.x;
         Snake.last.y = Snake.y;
+
         if (
           adressTiles(
             SnakeSegments[SnakeSegments.length - 1].x,
@@ -2147,7 +2198,7 @@
 
       function dead() {
         alive = false;
-        start = false;
+        start = true;
         Snake.nextAngle = "none";
         mainMenu();
         menuButtonJs.id = 0;
@@ -2387,15 +2438,16 @@
             imgObj.width < 0 ? imgObj.width : 0,
           );
 
-          if (imgObj.wallWrap && settings.game.walls) {
+          if (imgObj.wallWrap) {
+            if (settings.game.walls) {
+              return;
+            }
             switch (extraObj.connect) {
               case "head": {
                 ctx.fillRect(0, 1, tickCounter > 3 ? tickCounter - 4 : 0, 8);
                 break;
               }
               case "tail": {
-                console.error("iafd0hwd");
-
                 ctx.fillRect(0, 1, tickCounter < 6 ? 3 : 0, 8);
                 break;
               }
@@ -2453,9 +2505,8 @@
                           settings obj editing (for super nerds like u bc otherwise u should use the gui
 
       BUG FIX:
-        textures Snake death
-        wall wrap bug
-
+        stop move if death when move() x 10
+        canvas  % (operator) thing for game
                                                                                 Someday:
                                                                                           Language
                                                                                           leaderboard (global)
