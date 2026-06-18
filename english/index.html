@@ -1,0 +1,2640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schlange</title>
+    <canvas id="canvas1" width="320" height="180"></canvas>
+
+    <div id="scoreDiv">
+      <header class="scoreText">Punktzahl:</header>
+      <p class="scoreText" id="score">0</p>
+    </div>
+
+    <button class="pauseButton" onclick="pauseGame()">
+      <div class="pauseIcon" onclick="pauseGame()"></div>
+    </button>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+
+        touch-action: none;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100dvh;
+        background: #3f2800;
+      }
+
+      canvas {
+        background-color: #3f2800;
+        width: 100vw;
+        height: 100vh;
+        object-fit: contain;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        touch-action: none;
+        user-select: none;
+        display: block;
+      }
+
+      #scoreDiv {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: black;
+        width: 250px;
+      }
+
+      .scoreText {
+        top: 10px;
+        position: absolute;
+        max-width: 100%;
+
+        font-size: 42px;
+        color: aqua;
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px aqua;
+        white-space: nowrap; /* no wrapping */
+        overflow: hidden; /* hide overflow */
+        text-overflow: ellipsis;
+        margin: 0;
+      }
+
+      #scoreBox {
+        position: absolute;
+        left: 10px;
+      }
+
+      #score {
+        top: 50px;
+      }
+
+      .pauseButton {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        border-radius: 5%;
+      }
+
+      .pauseIcon {
+        width: 20px;
+        height: 24px;
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .pauseIcon::before,
+      .pauseIcon::after {
+        content: "";
+        width: 6px;
+        height: 100%;
+        background-color: #fff;
+        border-radius: 2px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      #mainMenu {
+        position: absolute;
+        width: 500px;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 100px;
+
+        background: linear-gradient(
+          90deg,
+          rgba(210, 105, 30),
+          rgba(255, 0, 0),
+          rgba(210, 105, 30)
+        );
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        font-size: 48px;
+        font: bold;
+        font-family: monospace;
+        color: rgb(0, 0, 0);
+        font-weight: bold;
+        pointer-events: none;
+        -webkit-text-stroke: 2px black;
+
+        height: 75%;
+        border-radius: 20px;
+        pointer-events: all;
+
+        border-style: solid;
+        border-color: rgba(0, 0, 255, 0.5);
+        border-width: 10px;
+        transition: width 0.3s ease;
+      }
+
+      #mainMenu.expanded {
+        width: 90%;
+      }
+
+      #buttonDiv {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        flex: 1;
+        pointer-events: all;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #menuText {
+        margin-top: 25px;
+      }
+
+      .menuButton {
+        padding: 10px;
+        font-size: 48px;
+        font-family: monospace;
+        height: fit-content;
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        white-space: nowrap;
+        /*flex: 1;it-content*/
+        margin: 10px;
+
+        pointer-events: all;
+      }
+
+      .wrapper {
+        display: flex;
+      }
+
+      .input {
+        flex: 1;
+        min-width: 0;
+        margin-right: 0;
+      }
+
+      .wrapper.state0 input,
+      .wrapper.state0 button:nth-of-type(2) {
+        display: none;
+      }
+
+      .wrapper.state1 button:nth-of-type(1) {
+        display: none;
+      }
+      .wrapper button:nth-of-type(1) {
+        flex: 1;
+      }
+
+      .chooseButtonDiv {
+        display: flex;
+
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
+        font-size: 48px;
+        font-family: monospace;
+        font-weight: normal !important;
+        margin: 10px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chooseButtonDiv div button {
+        justify-self: right;
+        margin: 0px;
+        background: rgba(0, 0, 0, 0.1);
+
+        font-size: 48px;
+        font-family: monospace;
+        flex: 1;
+        height: fit-content;
+
+        border-style: none none none solid;
+        border-color: #660000;
+      }
+
+      .chooseButtonDiv p {
+        margin: 10px;
+      }
+
+      .chooseButtonDiv div {
+        display: flex;
+        flex: 1;
+        margin-right: 10px;
+
+        background: #ff0000;
+        border: solid;
+        border-color: #8866dd;
+        border-width: 3px;
+        border-radius: 20px;
+
+        overflow: hidden;
+      }
+
+      .chooseButtonDiv div button:nth-of-type(1) {
+        border: none;
+      }
+
+      .chooseButtonDiv .selected {
+        color: white;
+        background: linear-gradient(#990000, #550000, #990000);
+        text-decoration: underline;
+        text-decoration-color: white;
+        text-decoration-thickness: 1px;
+      }
+
+      .sliderContainer {
+        display: flex;
+        background-color: black;
+        margin: 10px;
+        padding: 10px;
+        align-self: stretch;
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+        justify-items: center;
+        align-items: center;
+        padding: 10px;
+      }
+
+      .sliderContainer p {
+        padding-right: 10px;
+        margin: 0;
+        width: fit-content;
+        white-space: pre;
+      }
+
+      .sliderContainer input {
+        width: stretch;
+      }
+
+      .gridContainer {
+        padding: 10px;
+
+        flex: 1;
+
+        height: fit-content;
+        background: linear-gradient(cyan, #00c0c0, cyan);
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+
+        display: grid;
+        grid-gap: 10px;
+        grid-template-columns: repeat(4, minmax(1px, 1fr));
+        grid-auto-rows: min-content;
+
+        margin: 10px;
+      }
+
+      .gridContainer .gridSection {
+        grid-column: 1/-1;
+        display: grid;
+        grid-template-columns: subgrid;
+
+        background: linear-gradient(90deg, pink, magenta, pink);
+        padding: 10px;
+        margin: 10px;
+        min-height: 0;
+
+        border: solid;
+        border-color: purple;
+        border-width: 5px;
+        border-radius: 20px;
+        justify-items: center;
+      }
+
+      .gridContainer .gridSectionHeader {
+        grid-column: 1/-1;
+        background: linear-gradient(yellow, orange, yellow);
+        padding: 10px;
+        border: solid;
+        border-color: blueviolet;
+        border-width: 5px;
+        border-radius: 20px;
+        top: 10px;
+        position: sticky;
+        width: fit-content;
+      }
+
+      .gridSectionRow {
+        grid-column: span 4;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-auto-rows: max-content;
+        grid-gap: 10px;
+
+        margin: 20px;
+        min-height: 0;
+
+        background: linear-gradient(lime, rgb(13, 134, 64), lime);
+
+        border: solid;
+        border-color: green;
+        border-width: 5px;
+        border-radius: 20px;
+
+        overflow: hidden;
+        align-items: center;
+        justify-items: center;
+      }
+
+      .gridSectionRow div {
+        width: 100%;
+
+        contain: size;
+        overflow-y: scroll;
+        align-content: center;
+
+        scrollbar-width: thin;
+
+        min-height: 0;
+        height: 100%;
+      }
+
+      .gridSectionRow div p {
+        margin: 0;
+        height: fit-content;
+        word-wrap: break-word;
+      }
+
+      .gridSectionRow button {
+        width: 100%;
+      }
+
+      .table {
+        border-collapse: collapse;
+        color: rgb(0, 0, 0);
+        -webkit-text-stroke-width: 0;
+
+        overflow: hidden;
+        margin: 10px;
+        table-layout: fixed;
+        text-align: center;
+        border: 10px, solid, black;
+        border-radius: 20px;
+        border-collapse: separate;
+        border-spacing: 0;
+
+        border: 3px solid #ff0000;
+        border-radius: 10px;
+        box-shadow: 0 0 0 4px black;
+      }
+      .tableRow {
+        border-bottom: 1px solid #ddd;
+      }
+      .tableData {
+        padding: 5px;
+        text-align: center;
+        font-size: 24px;
+        background: linear-gradient(90deg, #00abab, darkcyan);
+        border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+      }
+      .table th {
+        background: linear-gradient(90deg, #555555, #111111);
+        color: white;
+        font-weight: bold;
+      }
+
+      .table .tableRow:nth-child(2) td {
+        background: linear-gradient(90deg, #ffd700, #ffb300);
+        color: #222;
+        font-weight: bold;
+      }
+
+      .table .tableRow:nth-child(3) td {
+        background: linear-gradient(90deg, #c0c0c0, #9e9e9e);
+        color: #222;
+        font-weight: bold;
+      }
+
+      .table .tableRow:nth-child(4) td {
+        background: linear-gradient(90deg, #cd7f32, #a65e2e);
+        color: #222;
+        font-weight: bold;
+      }
+
+      .table .tableRow:last-of-type td {
+        background: linear-gradient(90deg, #7cfc00, #00ff00);
+        color: #222;
+        font-weight: bold;
+      }
+      .table .tableRow:nth-child(2) td,
+      .table .tableRow:nth-child(3) td,
+      .table .tableRow:nth-child(4) td {
+        border-bottom: 3px solid rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+  <body onload="Game()">
+    <div class="menu" id="mainMenu">
+      <header id="menuText"></header>
+      <div id="buttonDiv"></div>
+    </div>
+
+    <script>
+      const path = `/${window.location.pathname.split("/")[1]}/`;
+      let canvas = document.getElementById("canvas1");
+      let ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+
+      function resizeCanvas() {
+        const baseWidth = canvas.width;
+        const baseHeight = canvas.height;
+
+        const scale = Math.min(
+          window.innerWidth / baseWidth,
+          window.innerHeight / baseHeight,
+        );
+
+        canvas.style.width = baseWidth * scale + "px";
+        canvas.style.height = baseHeight * scale + "px";
+
+        deviceInfo = {
+          width: window.innerWidth,
+          height: window.innerHeight,
+
+          aspectRatio: window.innerWidth / window.innerHeight,
+        };
+
+        settings.controls.swipeThreshold.val =
+          (deviceInfo.aspectRatio < canvas.width / canvas.height
+            ? deviceInfo.width
+            : deviceInfo.height) /
+          (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
+            0.0587) /
+          10;
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      window.addEventListener("orientationchange", () => {
+        setTimeout(resizeCanvas, 100);
+      });
+
+      canvas.tabIndex = 0;
+      canvas.focus();
+
+      let deviceInfo = {
+        width: canvas.getBoundingClientRect().width,
+        height: canvas.getBoundingClientRect().height,
+
+        aspectRatio:
+          canvas.getBoundingClientRect().width /
+          canvas.getBoundingClientRect().height,
+      };
+
+      let css = {
+        mainMenu: document.getElementById("mainMenu"),
+        menuText: document.getElementById("menuText"),
+        tables: {},
+      };
+
+      css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
+
+      let placeholderCount = 0;
+      function placeholder() {
+        console.error(new Error(`placeholder: ${placeholderCount}`));
+        return `${placeholderCount++}`;
+      }
+
+      let Key = {
+        state: {
+          up: false,
+          left: false,
+          down: false,
+          right: false,
+
+          swipe: false,
+        },
+        functions: {
+          pause: pauseGame,
+          toggleFullscreen,
+          /*scoreUp: function () {
+                        Snake.segmentCount++;
+                      },*/
+        },
+      };
+
+      let Keybinds;
+
+      let leaderboardArr = localStorage.getItem("leaderboardArray")
+        ? JSON.parse(localStorage.getItem("leaderboardArray"))
+        : [
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+
+            { name: "-", score: 0 },
+          ];
+
+      let tickCounter = 0;
+      let alive = false;
+      let start = true;
+      let updateloop;
+      let directionChange;
+
+      let map = {
+        start_x: 40,
+        start_y: 10,
+        width: 240,
+        height: 160,
+        tile_length: 10,
+        appleCout: 2,
+      };
+
+      let backgroundImage = new Image();
+      let bufferDirection;
+      let Snake = {
+        x: 80,
+        y: 80,
+        last: { x: 80, y: 80 },
+        nextAngle: 0,
+        bufferAngle: 0,
+        angle: 0,
+        segmentCount: 4,
+        startSegmentCount: 4,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: `${path}textures/Spreadsheet.png`,
+        srcCoords: { x: 10, y: 0 },
+      };
+
+      let SnakeSegments = [];
+
+      let tiles = [];
+      for (let b = 0; b < map.width / map.tile_length; b++) {
+        for (let c = 0; c < map.height / map.tile_length; c++) {
+          let tileObj = {
+            name: `tileObj_${b}_${c}`,
+            x: b * map.tile_length,
+            y: c * map.tile_length,
+            state: "free",
+          };
+          tiles.push(tileObj);
+        }
+      }
+
+      let Apples = [];
+
+      let appleGrow = false;
+
+      let touch = {
+        lastpos: { x: 0, y: 0 },
+        currentpos: { x: 0, y: 0 },
+      };
+
+      let settings = JSON.parse(
+        localStorage.getItem("settings") === null
+          ? "{}"
+          : localStorage.getItem("settings"),
+      );
+
+      document.onkeydown = function (e) {
+        if (e.repeat === false) {
+          keyHandler(e.code, true);
+        }
+      };
+
+      document.onkeyup = function (e) {
+        keyHandler(e.code, false);
+      };
+
+      function keyHandler(inputKey, state) {
+        document.dispatchEvent(
+          new CustomEvent("Snake:keyDown", {
+            detail: { key: inputKey, state },
+          }),
+        );
+
+        Key.state.up =
+          Key.state.left =
+          Key.state.down =
+          Key.state.right =
+            false;
+
+        if (Keybinds.state?.[inputKey] !== undefined) {
+          Key.state[Keybinds.state[inputKey]] = state;
+        }
+        if (
+          state &&
+          Key.functions[Keybinds.functions?.[inputKey]] !== undefined
+        ) {
+          Key.functions[Keybinds.functions?.[inputKey]]();
+        }
+
+        if (start && inputKey !== "Escape" && alive) {
+          alive = true;
+          start = false;
+          directionHandler();
+          updateDirection();
+          SnakeSegments.pop();
+          manageSnakeSegments(Snake.x, Snake.y);
+          update();
+        }
+      }
+
+      document.addEventListener("mousedown", function (e) {
+        keyHandler(
+          (() => {
+            switch (e.which) {
+              case 1:
+                return "LMB";
+              case 2:
+                e.preventDefault();
+                return "MouseWheel";
+              case 3:
+                return "RMB";
+              default:
+                return `Mouse_${e.which}`;
+            }
+          })(),
+          true,
+        );
+      });
+
+      document.addEventListener("contextmenu", function (e) {
+        e.preventDefault();
+      });
+
+      document.addEventListener("touchstart", function (e) {
+        touch.lastpos = touch.currentpos = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
+        keyHandler("Touch", true);
+      });
+
+      document.addEventListener("mousemove", function (e) {
+        calcDir(e);
+      });
+
+      document.addEventListener("touchmove", function (e) {
+        calcDir(e.touches[0]);
+      });
+
+      document.addEventListener("touchend", function () {
+        keyHandler("Touch", false);
+      });
+
+      document.addEventListener("mouseup", function (e) {
+        keyHandler(
+          (() => {
+            switch (e.which) {
+              case 1:
+                return "LMB";
+              case 2:
+                return "MouseWheel";
+              case 3:
+                return "RMB";
+              default:
+                return `Mouse_${e.which}`;
+            }
+          })(),
+          false,
+        );
+      });
+
+      function calcDir(e) {
+        touch.currentpos = {
+          x: e.clientX,
+          y: e.clientY,
+        };
+        if (!Key.state.swipe) {
+          touch.lastpos = touch.currentpos;
+          return;
+        }
+        let difference = {
+          x: touch.currentpos.x - touch.lastpos.x,
+          y: touch.currentpos.y - touch.lastpos.y,
+        };
+        if (
+          Math.abs(difference.x) < settings.controls.swipeThreshold.val &&
+          Math.abs(difference.y) < settings.controls.swipeThreshold.val
+        ) {
+          return;
+        }
+
+        touch.lastpos = touch.currentpos;
+        keyHandler(
+          Math.abs(difference.x) > Math.abs(difference.y)
+            ? difference.x < 0
+              ? "SwipeLeft"
+              : "SwipeRight"
+            : difference.y < 0
+              ? "SwipeUp"
+              : "SwipeDown",
+          true,
+        );
+      }
+
+      //Menu
+
+      function createElements(elementArr, parentObj, replaceBool = true) {
+        if (replaceBool) {
+          parentObj.replaceChildren();
+        }
+        let tempCounter = 0;
+        for (const element of elementArr) {
+          let tempElement = document.createElement(element.elementType);
+
+          element?.id
+            ? (tempElement.id = element.id)
+            : console.error(new Error(`no Id: ${JSON.stringify(element)}`));
+
+          for (const property in element) {
+            switch (property) {
+              case "elementType": {
+                break;
+              }
+              case "id": {
+                break;
+              }
+              case "children": {
+                break;
+              }
+              case "text": {
+                tempElement.innerText = element[property];
+                break;
+              }
+              case "className": {
+                tempElement.className = element[property];
+                break;
+              }
+              case property.startsWith("on") ? property : null: {
+                tempElement[`${property}`] = element[property];
+                break;
+              }
+
+              default:
+                tempElement.setAttribute(property, element[property]);
+            }
+          }
+
+          if (element?.children) {
+            createElements(element.children, tempElement, false);
+          }
+          parentObj.append(tempElement);
+
+          tempCounter++;
+        }
+      }
+
+      class menuButtonJs {
+        static id = 0;
+        constructor(text, onclick, hidden = false) {
+          this.elementType = "button";
+          this.text = text;
+          this.className = "menuButton";
+          this.onclick = onclick;
+          this.id = `button_${menuButtonJs.id++}`;
+          if (hidden) {
+            this.hidden = "true";
+          }
+        }
+      }
+
+      class inputButton {
+        static id = 0;
+        constructor(text, onclick, val) {
+          this.elementType = "div";
+          this.className = "wrapper state0";
+          this.id = `inputButton_${inputButton.id}`;
+
+          this.children = [
+            new menuButtonJs(
+              `${text}${val !== undefined ? ": " + (Number(val) === val ? (val < 999 ? (val < 9.4 ? Math.round(val * 100) / 100 : Math.round(val)) : 999) : val) : ""}`,
+              () => {
+                this.toggleHide();
+              },
+            ),
+            {
+              elementType: "input",
+              className: "menuButton input",
+              placeholder: text,
+              id: `input_${inputButton.id}`,
+            },
+            new menuButtonJs("Ok", (e) => {
+              this.toggleHide();
+              let newVal = getInputText(e, "Number", false);
+              document.getElementById(this.children[0].id).innerText =
+                `${text}${newVal !== undefined ? ": " + (Number(newVal) === newVal ? (newVal < 999 ? (newVal < 9.4 ? Math.round(newVal * 100) / 100 : Math.round(newVal)) : 999) : val) : ""}`;
+
+              onclick(e);
+            }),
+          ];
+          inputButton.id++;
+        }
+        toggleHide() {
+          document.getElementById(this.id).className =
+            document.getElementById(this.id).className === "wrapper state0"
+              ? "wrapper state1"
+              : "wrapper state0";
+        }
+      }
+
+      class chooseButton {
+        static id = 0;
+        constructor(onclick) {
+          this.elementType = "div";
+          this.id = `chooseButton_${chooseButton.id++}`;
+
+          this.className = "chooseButtonDiv";
+
+          this.children = [
+            { elementType: "p", id: "chooseButtonText", text: "Apples: " },
+            {
+              elementType: "div",
+              id: `${this.id}_buttonDiv_0`,
+              children: [
+                {
+                  elementType: "button",
+                  id: "1",
+                  class: "",
+                  onclick: (e) => {
+                    this.switchButton(e.target.id);
+                    onclick(1, "count", settings.game.apples);
+                  },
+                  text: "1",
+                },
+                {
+                  elementType: "button",
+                  id: "5",
+                  class: "",
+                  onclick: (e) => {
+                    this.switchButton(e.target.id);
+                    onclick(5, "count", settings.game.apples);
+                  },
+                  text: "5",
+                },
+              ],
+            },
+            {
+              elementType: "div",
+              id: `${this.id}_buttonDiv_1`,
+              children: [
+                {
+                  elementType: "button",
+                  id: "hydra",
+                  class: settings.game.apples.hydra ? "selected" : "",
+                  onclick: (e) => {
+                    this.switchButton(e.target.id);
+                    onclick(
+                      !settings.game.apples.hydra,
+                      "hydra",
+                      settings.game.apples,
+                    );
+                    onclick(1, "count", settings.game.apples);
+                  },
+                  text: "Hydra",
+                },
+              ],
+            },
+          ];
+
+          this.children[1].children[
+            `${settings.game.apples.count === 1 ? 0 : 1}`
+          ].className = "selected";
+        }
+        switchButton(elementId) {
+          switch (elementId) {
+            case "hydra":
+              document.getElementById("hydra").className =
+                document.getElementById("hydra").className === ""
+                  ? "selected"
+                  : "";
+              break;
+
+            case "1":
+              document.getElementById("5").className = "";
+
+            case "5":
+              document.getElementById("1").className = "";
+
+            default:
+              document.getElementById(elementId).className = "selected";
+          }
+        }
+      }
+
+      class slider {
+        static id = 0;
+        constructor(text, obj, val) {
+          //max,min,step
+          this.elementType = "div";
+          this.id = `slider_${slider.id++}`;
+          this.className = "sliderContainer";
+
+          this.children = [
+            {
+              elementType: "p",
+              id: `${this.id}_p`,
+              text: `${text}: ${" ".repeat(3 - `${obj[val]}`.length)}${obj[val]}`,
+            },
+            {
+              elementType: "input",
+              type: "range",
+              min: 1,
+              max: 100,
+              value: obj[val],
+              id: `${this.id}_range`,
+              oninput: (e) => {
+                obj[val] = Number(e.target.value); //TODO Add funtion where f(100) = 10, f(1) = 0.1
+
+                e.target.parentNode.children[0].innerText = `${text}: ${" ".repeat(3 - `${e.target.value}`.length)}${e.target.value}`;
+                settings.controls.swipeThreshold.val =
+                  (deviceInfo.aspectRatio < canvas.width / canvas.height
+                    ? deviceInfo.width
+                    : deviceInfo.height) /
+                  (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
+                    0.0587) /
+                  10;
+                localStorage.setItem("settings", JSON.stringify(settings));
+              },
+            },
+          ];
+        }
+      }
+
+      class grid {
+        static id = 0;
+        constructor(obj) {
+          this.elementType = "div";
+          this.className = "gridContainer";
+          this.children = [];
+          this.id = `grid_${grid.id++}`;
+          let n = 0;
+
+          Object.entries(obj).forEach((section) => {
+            this.children.push({
+              elementType: "div",
+              id: `${this.id}_section_${n}`,
+              className: "gridSection",
+              children: [
+                {
+                  elementType: "p",
+                  text: section[0],
+                  className: `gridSectionHeader`,
+                  id: `${this.id}_section_header_${n++}`,
+                },
+              ],
+            });
+
+            Object.entries(section[1]).forEach((keybind) => {
+              this.children[this.children.length - 1].children.push({
+                elementType: "div",
+                className: "gridSectionRow",
+                id: `${this.id}_section_row_${keybind[0]}`,
+
+                children: [
+                  {
+                    elementType: "p",
+                    id: `${this.id}_section_bind_${n}`,
+                    text: `${keybind[0]}`,
+                  },
+                  {
+                    elementType: "div",
+                    id: `${this.id}_section_binds_${n}`,
+                    children: [
+                      {
+                        elementType: "p",
+                        id: `${this.id}_section_binds_text_${n}`,
+                        text: keybind[1].map((element, index) => {
+                          return `${index === 0 ? "" : " "}${element}`;
+                        }),
+                      },
+                    ],
+                  },
+                  new menuButtonJs("New Key", function (e) {
+                    const target = e.target;
+                    this.innerText = "Press Key";
+                    document.addEventListener(
+                      "Snake:keyDown",
+                      function keyListener(e) {
+                        console.log(
+                          Keybinds,
+                          section[0],
+                          e.detail.key,
+                          Keybinds[section[0]][e.detail.key],
+                          e.detail,
+                        );
+                        if (
+                          Keybinds[section[0]][e.detail.key] === "swipe" &&
+                          e.detail.state
+                        ) {
+                          console.error(
+                            Keybinds[section[0]][e.detail.key] === "swipe" &&
+                              e.detail.state,
+                          );
+                          return;
+                        }
+
+                        target.innerText = "New Key";
+
+                        let oldKeybindText = document.getElementById(
+                          `${target.parentNode.parentNode.parentNode.id}_section_row_${
+                            Keybinds[
+                              target.parentNode.parentNode.children[0].innerText
+                            ][e.detail.key]
+                          }`,
+                        )?.children[1].children[0];
+
+                        if (oldKeybindText !== undefined)
+                          oldKeybindText.innerText =
+                            oldKeybindText.innerText.replace(
+                              oldKeybindText.innerText === e.detail.key
+                                ? e.detail.key
+                                : oldKeybindText.innerText.endsWith(
+                                      e.detail.key,
+                                    )
+                                  ? `, ${e.detail.key}`
+                                  : `${e.detail.key}, `,
+                              "",
+                            );
+
+                        Keybinds[
+                          target.parentNode.parentNode.children[0].innerText
+                        ][e.detail.key] =
+                          target.parentNode.children[0].innerText;
+
+                        target.parentNode.children[1].children[0].innerHTML =
+                          getKeybinds()[section[0]][keybind[0]].map(
+                            (element, index) => {
+                              return `${index === 0 ? "" : " "}${element}`;
+                            },
+                          );
+
+                        localStorage.setItem(
+                          "keybinds",
+                          JSON.stringify(Keybinds),
+                        );
+
+                        //
+                        document.removeEventListener(
+                          "Snake:keyDown",
+                          keyListener,
+                        );
+                      },
+                    );
+                  }),
+                  new menuButtonJs(
+                    obj[section[0]][keybind[0]].length === 0
+                      ? "Default"
+                      : "Reset",
+
+                    async function (e) {
+                      let currentKeybinds = getKeybinds();
+                      if (
+                        currentKeybinds[section[0]][keybind[0]].length === 0
+                      ) {
+                        this.innerText = "Reset";
+
+                        await (await fetch(`${path}default/keybinds.JSON`))
+                          .json()
+                          .then((value) =>
+                            getKeybinds(value)[section[0]][keybind[0]].forEach(
+                              (element) => {
+                                let oldKeybindText = document.getElementById(
+                                  `${e.target.parentNode.parentNode.parentNode.id}_section_row_${
+                                    Keybinds[section[0]][element]
+                                  }`,
+                                )?.children[1].children[0];
+
+                                console.log(element, oldKeybindText);
+
+                                Keybinds[section[0]][element] = keybind[0];
+                                if (oldKeybindText !== undefined) {
+                                  oldKeybindText.innerText =
+                                    oldKeybindText.innerText.replace(
+                                      oldKeybindText.innerText === element
+                                        ? element
+                                        : oldKeybindText.innerText.endsWith(
+                                              element,
+                                            )
+                                          ? `, ${element}`
+                                          : `${element}, `,
+                                      "",
+                                    );
+                                }
+                              },
+                            ),
+                          );
+                        this.parentNode.children[1].children[0].innerHTML =
+                          getKeybinds()[section[0]][keybind[0]].map(
+                            (element, index) => {
+                              return `${index === 0 ? "" : " "}${element}`;
+                            },
+                          );
+                      } else {
+                        this.innerText = "Default";
+                        currentKeybinds[section[0]][keybind[0]].forEach(
+                          (element) => {
+                            delete Keybinds[section[0]][element];
+                          },
+                        );
+                        this.parentNode.children[1].children[0].innerHTML = "";
+                      }
+                      localStorage.setItem(
+                        "keybinds",
+                        JSON.stringify(Keybinds),
+                      );
+                    },
+                  ),
+                ],
+              });
+            });
+          });
+        }
+      }
+
+      class tableAssembler {
+        static id = 0;
+        constructor(text, widthArr = [25, 50, 25]) {
+          this.elementType = "table";
+          this.className = "table";
+          this.id = `table_${tableAssembler.id}`;
+          this.children = [];
+
+          for (let n = 0; n < text.length; n++) {
+            this.children.push({
+              elementType: "tr",
+              className: "tableRow",
+              children: [],
+              id: `${this.id}_tr_${n}`,
+            });
+            for (let i = 0; i < text[n].length; i++) {
+              this.children[n].children.push({
+                elementType: `${n === 0 ? "th" : "td"}`,
+                text: text[n][i],
+                className: "tableData",
+                id: `${this.id}_tr_${n}_${n === 0 ? "th" : "td"}_${i}`,
+              });
+            }
+          }
+          this.children.push(
+            new (function () {
+              this.elementType = "colgroup";
+              this.id = `table_${tableAssembler.id++}_colgroup`;
+
+              this.children = [];
+              widthArr.forEach((element, index) =>
+                this.children.push({
+                  elementType: "col",
+                  width: element,
+                  id: `${this.id}_colgroup_${index}`,
+                }),
+              );
+            })(),
+          );
+        }
+      }
+
+      function mainMenu() {
+        menuButtonJs.id = 0;
+        createElements(
+          [
+            new menuButtonJs("Continue", continueGame),
+            new menuButtonJs("Settings", settingsMenu),
+            new menuButtonJs("Leaderboard", leaderboard),
+            /*new menuButtonJs("Statistics", function () {
+                                debugButton(this);
+                              }),*/
+            new menuButtonJs("New Game", newGame),
+            new menuButtonJs("Quit", quit),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+        css.menuText.innerText = "Menu";
+        css.mainMenu.classList.remove("expanded");
+        css.mainMenu.hidden = false;
+      }
+
+      function continueGame() {
+        alive = true;
+        update();
+        css.mainMenu.hidden = true;
+      }
+
+      function pauseGame() {
+        if (alive) {
+          alive = false;
+          mainMenu();
+        }
+      }
+
+      function settingsMenu() {
+        css.mainMenu.classList.add("expanded");
+        css.menuText.innerText = "Settings";
+
+        menuButtonJs.id = 0;
+        createElements(
+          [
+            new menuButtonJs("Back", function () {
+              localStorage.setItem("settings", JSON.stringify(settings));
+              mainMenu();
+            }),
+            new menuButtonJs("Game", gameSettings),
+            new menuButtonJs("Controls", controlSettings),
+            new menuButtonJs("Graphics", graphicsSettings),
+            //new menuButtonJs("Language", languageSettings),
+            new menuButtonJs("Dev", devSettings),
+            //cookies
+          ],
+          css.mainMenu.buttonDiv,
+        );
+
+        function gameSettings() {
+          css.menuText.innerText = "Game Settings";
+          inputButton.id = 0;
+          menuButtonJs.id = 0;
+          chooseButton.id = 0;
+          createElements(
+            [
+              new menuButtonJs("Back", settingsMenu),
+              new inputButton(
+                "Speed",
+                (e) =>
+                  changeSettings(
+                    1 / getInputText(e, "Number"),
+                    "speedMult",
+                    settings.game,
+                  ),
+                1 / settings.game.speedMult,
+              ),
+              new chooseButton(changeSettings),
+              new inputButton(
+                "Deny Leave",
+                (e) =>
+                  changeSettings(
+                    getInputText(e, "Number"),
+                    "preventAccidentalLeave",
+                    settings.game,
+                  ),
+                settings.game.preventAccidentalLeave,
+              ),
+              new menuButtonJs(
+                `Hard Mode: ${settings.game.hardModeMult.on}`,
+                (e) => {
+                  settings.game.hardModeMult.on =
+                    !settings.game.hardModeMult.on;
+                  e.target.innerText = `Hard Mode: ${settings.game.hardModeMult.on}`;
+                },
+              ),
+              new menuButtonJs(`Walls: ${settings.game.walls}`, (e) => {
+                settings.game.walls = !settings.game.walls;
+                e.target.innerText = `Walls: ${settings.game.walls}`;
+              }),
+            ],
+            css.mainMenu.buttonDiv,
+          );
+
+          function changeSettings(textInput, valueToChange, obj) {
+            if (
+              textInput == null ||
+              (!Number.isFinite(textInput) && typeof textInput !== "boolean")
+            ) {
+              return console.error(new Error(textInput));
+            }
+            obj[valueToChange] = textInput;
+
+            localStorage.setItem("settings", JSON.stringify(settings));
+          }
+        }
+
+        function graphicsSettings() {
+          css.menuText.innerText = "Graphics Settings";
+          menuButtonJs.id = 0;
+          createElements(
+            [
+              new menuButtonJs("Back", settingsMenu),
+              new menuButtonJs("Toggle Fullscreen", (e) => toggleFullscreen(e)),
+            ],
+            css.mainMenu.buttonDiv,
+          );
+        }
+
+        function controlSettings() {
+          css.menuText.innerText = "Controls";
+          menuButtonJs.id = 0;
+          slider.id = 0;
+          createElements(
+            [
+              new menuButtonJs("Back", settingsMenu),
+              new slider(
+                "Sensitivity",
+                settings.controls.swipeThreshold,
+                "mult",
+              ),
+              new menuButtonJs("Keybinds", keybindSettings),
+            ],
+            css.mainMenu.buttonDiv,
+          );
+
+          function keybindSettings() {
+            css.menuText.innerText = "Change Keybinds";
+
+            menuButtonJs.id = 0;
+            grid.id = 0;
+
+            createElements(
+              [
+                new menuButtonJs("Back", controlSettings),
+                new grid(getKeybinds()),
+
+                new menuButtonJs("Reset All", function () {
+                  Object.entries(Keybinds).forEach((element) => {
+                    Keybinds[element[0]] = {};
+                    localStorage.setItem("keybinds", JSON.stringify(Keybinds));
+                    keybindSettings();
+                  });
+                }),
+                new menuButtonJs("Restore Default", async function () {
+                  Keybinds = await (
+                    await fetch(`${path}default/keybinds.JSON`)
+                  ).json();
+                  localStorage.setItem("keybinds", JSON.stringify(Keybinds));
+                  keybindSettings();
+                }),
+              ],
+              css.mainMenu.buttonDiv,
+            );
+          }
+        }
+
+        function languageSettings() {
+          css.menuText.innerText = "Language Settings";
+          menuButtonJs.id = 0;
+          createElements(
+            [new menuButtonJs("Back", settingsMenu)],
+            css.mainMenu.buttonDiv,
+          );
+        }
+
+        function devSettings() {
+          css.menuText.innerText = "Dev Settings";
+          menuButtonJs.id = 0;
+          createElements(
+            [
+              new menuButtonJs("Back", settingsMenu),
+              new menuButtonJs(`Touch: ${settings.dev.touchbox}`, (e) => {
+                settings.dev.touchbox = !settings.dev.touchbox;
+                e.target.innerText = `Touch: ${settings.dev.touchbox}`;
+                localStorage.setItem("settings", JSON.stringify(settings));
+              }),
+            ],
+            css.mainMenu.buttonDiv,
+          );
+        }
+      }
+
+      function getInputText(e, type, reset = true) {
+        let textInput = e.target.parentNode.children[1].value;
+        if (reset) {
+          e.target.parentNode.children[1].value = "";
+        }
+        switch (type) {
+          case "Number":
+            return isNaN(Number(textInput)) ? null : Number(textInput);
+          case "string":
+            return textInput;
+          default:
+            console.error(new Error(`"${type}" is an invalid Type`));
+            return null;
+        }
+      }
+
+      function getKeybinds(restore = false) {
+        return new (function () {
+          Object.entries(Key).forEach((section) => {
+            this[section[0]] = {};
+            Object.entries(section[1]).forEach((element) => {
+              if (element[0] === "undefined") {
+                console.error(element);
+              }
+              this[section[0]][element[0]] = [];
+            });
+            Object.entries(
+              typeof restore === "object"
+                ? restore[section[0]]
+                : Keybinds[section[0]],
+            ).forEach((element) => {
+              console.log(this, section, element);
+              this[section[0]][element[1]].push(element[0]);
+            });
+          });
+        })();
+      }
+
+      function toggleFullscreen(e) {
+        document.fullscreen
+          ? document.exitFullscreen()
+          : document.documentElement.requestFullscreen();
+      }
+
+      function leaderBoardEntry(input) {
+        leaderboardArr.push({
+          name: input,
+          score: Math.ceil(
+            (Snake.segmentCount - Snake.startSegmentCount) /
+              settings.game.speedMult,
+          ),
+        });
+        leaderboardArr.sort((a, b) => b.score - a.score);
+        if (leaderboardArr.length > 12) {
+          leaderboardArr.pop();
+        }
+        localStorage.setItem(
+          "leaderboardArray",
+          JSON.stringify(leaderboardArr),
+        );
+      }
+
+      function leaderboard() {
+        css.mainMenu.classList.add("expanded");
+        css.menuText.innerText = "Leaderboard";
+
+        //leaderboardArr.push({ name: "a", score: 1 });
+        inputButton.id = 0;
+        menuButtonJs.id = 0;
+        tableAssembler.id = 0;
+        createElements(
+          [
+            new menuButtonJs("Back", mainMenu),
+            new inputButton("Enter Leaderboard", (e) =>
+              leaderBoardEntry(getInputText(e, "string")),
+            ),
+            new tableAssembler(
+              new (function () {
+                this.length = 0;
+                this[this.length++] = ["Rank", "Name", "Score"];
+                leaderboardArr.forEach((element, index) => {
+                  this[this.length++] = [
+                    `${
+                      index >= 0 && index <= 2
+                        ? ["🏆", "🥈", "🥉"][index]
+                        : index === leaderboardArr.length - 1
+                          ? "💩"
+                          : index + 1
+                    }`,
+                    element.name,
+                    element.score,
+                  ];
+                });
+              })(),
+            ),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+        css.tables.leaderboard = document.getElementById("leaderBoardTable");
+      }
+
+      function newGame(e = false) {
+        if (
+          Snake.segmentCount - Snake.startSegmentCount >=
+            settings.game.preventAccidentalLeave &&
+          e?.target?.innerText !== "Confirm Leave" &&
+          settings.game.preventAccidentalLeave > 0 &&
+          e?.target?.innerHTML !== undefined
+        ) {
+          e.target.innerHTML = "Confirm Leave";
+          return;
+        }
+        document.getElementById("score").innerText = 0;
+
+        Snake.x = 80;
+        Snake.y = 80;
+        Snake.last.x = Snake.x;
+        Snake.last.y = Snake.y;
+        Snake.segmentCount = Snake.startSegmentCount;
+        Snake.nextAngle = 0;
+        Snake.bufferAngle = 0;
+        Snake.angle = 0;
+        SnakeSegments = [];
+
+        for (let n = 0; n < tiles.length; n++) {
+          tiles[n].state = "free";
+        }
+
+        generateSnakeSegments(Snake.x, Snake.y);
+        directionHandler();
+        updateDirection();
+        manageSnakeSegments(Snake.x, Snake.y);
+
+        Apples =
+          settings.game.apples.count === 1
+            ? [new Apple({ x: 230, y: 80 })]
+            : (() => {
+                let tempArr = [];
+                for (let n = 0; n < settings.game.apples.count; n++) {
+                  tempArr.push(
+                    new Apple(
+                      [
+                        new Apple({ x: 210, y: 60 }),
+                        new Apple({ x: 250, y: 60 }),
+                        new Apple({ x: 230, y: 80 }),
+                        new Apple({ x: 210, y: 100 }),
+                        new Apple({ x: 250, y: 100 }),
+                      ][n],
+                    ),
+                  );
+                }
+                return tempArr;
+              })();
+
+        settings.game.hardModeMult.val = 1;
+        tickCounter = 0;
+        start = true;
+        continueGame();
+        Snake.nextAngle = 0;
+        Snake.bufferAngle = 0;
+        Snake.angle = 0;
+      }
+
+      function generateSnakeSegments(x, y) {
+        if ((x - map.start_x) / map.tile_length < Snake.segmentCount) {
+          Snake.x += Snake.segmentCount * map.tile_length - map.start_x;
+
+          let tempSegment = {
+            x: Snake.x,
+            y: Snake.y,
+            angle: Snake.angle,
+          };
+
+          let tempSnakeSegments = [tempSegment];
+
+          let abc = 0;
+
+          while (Snake.segmentCount > tempSnakeSegments.length && abc < 200) {
+            abc++;
+            let segmentDirection;
+            let repeatSegmentSpawnAmount;
+            if (tempSegment.y === Snake.y) {
+              if (tempSegment.x !== map.start_x) {
+                segmentDirection = 180;
+                repeatSegmentSpawnAmount =
+                  (tempSegment.x - map.start_x) / map.tile_length;
+              } else {
+                if (
+                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                  0
+                ) {
+                  segmentDirection = 90;
+
+                  repeatSegmentSpawnAmount =
+                    ((map.height - tempSegment.y) * 1) / map.tile_length;
+                }
+              }
+            } else {
+              if (
+                tempSegment.y === map.height ||
+                tempSegment.y === Snake.y - map.tile_length
+              ) {
+                if (
+                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                  0
+                ) {
+                  segmentDirection = 0;
+                  repeatSegmentSpawnAmount = 1;
+                } else {
+                  segmentDirection = 270;
+                  if (
+                    tempSegment.x ===
+                    map.start_x + map.width - map.tile_length
+                  ) {
+                    repeatSegmentSpawnAmount =
+                      (tempSegment.y - map.start_y) / map.tile_length;
+                  } else {
+                    if (tempSegment.y === Snake.y - map.tile_length) {
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.y - map.start_y - map.tile_length) /
+                        map.tile_length;
+                    } else {
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.y - Snake.y - map.start_y) /
+                        map.tile_length;
+                    }
+                  }
+                }
+
+                //Snake.segmentCount - tempSnakeSegments.length;
+              } else {
+                if (
+                  tempSegment.y === Snake.y + map.tile_length ||
+                  tempSegment.y === map.start_y + map.tile_length
+                ) {
+                  if (
+                    ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
+                    0
+                  ) {
+                    segmentDirection = 90;
+                    if (tempSegment.y === map.start_y + map.tile_length) {
+                      repeatSegmentSpawnAmount =
+                        (Snake.y - tempSegment.y - map.tile_length) /
+                        map.tile_length;
+                      if (
+                        tempSegment.x ===
+                        map.start_x + map.width - map.tile_length * 2
+                      ) {
+                        repeatSegmentSpawnAmount++;
+                      }
+                    } else {
+                      repeatSegmentSpawnAmount =
+                        ((map.height - tempSegment.y) * 1) / map.tile_length;
+                    }
+                  } else {
+                    segmentDirection = 0;
+                    repeatSegmentSpawnAmount = 1;
+                  }
+                } else {
+                  if (tempSegment.y === map.start_y) {
+                    if (
+                      tempSegment.x ===
+                      map.start_x + map.width - map.tile_length
+                    ) {
+                      segmentDirection = 180;
+                      repeatSegmentSpawnAmount =
+                        (tempSegment.x - map.start_x) / map.tile_length;
+                    } else {
+                      if (tempSegment.x === map.start_x) {
+                        segmentDirection = 90;
+                        repeatSegmentSpawnAmount =
+                          ((Snake.y - tempSegment.y - map.tile_length) * 1) /
+                          map.tile_length;
+                      }
+                    }
+                  } else {
+                    segmentDirection = 0;
+                    repeatSegmentSpawnAmount =
+                      Snake.segmentCount - tempSnakeSegments.length;
+                  }
+                }
+              }
+            }
+
+            repeatSegmentSpawn(repeatSegmentSpawnAmount, segmentDirection);
+          }
+          tempSnakeSegments.pop();
+          tempSnakeSegments.forEach((element) => {
+            manageSnakeSegments(element.x, element.y);
+          });
+
+          function repeatSegmentSpawn(amount, segmentDirection) {
+            if (amount > Snake.segmentCount) {
+              amount = Snake.segmentCount - tempSnakeSegments.length;
+            }
+            for (let n = 0; n < amount; n++) {
+              let tempSegmentAxis =
+                segmentDirection === 0 || segmentDirection === 180 ? "x" : "y";
+              let invert =
+                segmentDirection === 0 || segmentDirection === 90 ? 1 : -1;
+              tempSegment[tempSegmentAxis] += map.tile_length * invert;
+              tempSnakeSegments.unshift({
+                x: tempSegment.x,
+                y: tempSegment.y,
+                id: n,
+              });
+            }
+          }
+        } else {
+          for (let n = Snake.segmentCount; n > 0; n--) {
+            manageSnakeSegments(Snake.x - map.tile_length * n, y);
+          }
+        }
+      }
+
+      function debugButton(caller) {
+        console.error(new Error(`${caller.innerText} + needs a function`));
+      }
+
+      function quit() {
+        close();
+      }
+
+      /*Game*/
+
+      async function defineKeybinds() {
+        if (localStorage.getItem("keybinds")) {
+          return JSON.parse(localStorage.getItem("keybinds"));
+        }
+        return await (await fetch(`${path}default/keybinds.JSON`)).json();
+      }
+
+      async function defineSettings() {
+        let Json = await (await fetch(`${path}default/settings.JSON`)).json();
+        console.log(Json);
+        if (
+          typeof settings !== "object" &&
+          settings !== null &&
+          !Array.isArray(settings)
+        ) {
+          settings = {};
+        }
+
+        getObjKeys(Json, settings);
+
+        function getObjKeys(referenceObj, brokenObj) {
+          Object.entries(referenceObj).forEach((element) => {
+            if (
+              typeof element[1] === "object" &&
+              element[1] !== null &&
+              !Array.isArray(element[1])
+            ) {
+              if (brokenObj?.[element[0]] === undefined) {
+                brokenObj[element[0]] = element[1];
+                return;
+              }
+              getObjKeys(element[1], brokenObj[element[0]]);
+            } else {
+              if (brokenObj[element[0]] == undefined) {
+                brokenObj[element[0]] = element[1];
+              }
+            }
+          });
+        }
+
+        settings.controls.swipeThreshold.val =
+          (deviceInfo.aspectRatio < canvas.width / canvas.height
+            ? deviceInfo.width
+            : deviceInfo.height) /
+          (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
+            0.0587) /
+          10;
+      }
+
+      async function Game() {
+        //only functions //wait for default to load
+
+        createElements(
+          [
+            {
+              elementType: "link",
+              rel: "icon",
+              id: "page_icon",
+              type: "images/ico",
+              href: `${path}textures/icon.ico`,
+            },
+          ],
+          document.head,
+          false,
+        );
+
+        defineKeybinds().then((value) => {
+          Keybinds = value;
+          defineSettings().then(() => {
+            newGame();
+            pauseGame();
+            start = false;
+
+            resizeCanvas();
+            loadImages();
+            draw();
+          });
+        });
+      }
+
+      class SnakeSegmentConstructor {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+
+          this.angle = Snake.angle;
+          this.angle_b;
+          this.width = map.tile_length;
+          this.height = map.tile_length;
+          this.src = `${path}textures/Spreadsheet.png`;
+          this.srcCoords = this.calcTexture();
+          this.img = new Image();
+          this.img.src = this.src;
+          adressTiles(x, y, "segment");
+        }
+        calcTexture() {
+          let previousAngle = SnakeSegments[SnakeSegments.length - 1]?.angle;
+          if (this.angle === previousAngle) {
+            return { x: 10, y: 10 };
+          } else {
+            if (
+              (this.angle === 0 && previousAngle === 270 ? 360 : this.angle) <
+              (previousAngle === 0 && this.angle === 270 ? 360 : previousAngle)
+            ) {
+              this.width = -1 * map.tile_length;
+            }
+            return { x: 0, y: 10 };
+          }
+        }
+      }
+
+      class Apple {
+        constructor(pos) {
+          if (!pos) {
+            let freeTiles = tiles.filter((tileObj) => tileObj.state === "free");
+            pos = freeTiles[Math.floor(Math.random() * freeTiles.length)];
+            this.x = pos.x + map.start_x;
+            this.y = pos.y + map.start_y;
+          } else {
+            this.x = pos.x;
+            this.y = pos.y;
+          }
+          this.width = map.tile_length;
+          this.height = map.tile_length;
+          this.angle = 0;
+          this.src = `${path}textures/Spreadsheet.png`;
+          this.srcCoords = { x: 20, y: 10 };
+          this.img = new Image();
+
+          this.img.src = this.src;
+
+          adressTiles(this.x, this.y, "apple");
+        }
+      }
+
+      function update() {
+        if (start || (!alive && (tickCounter === 0 || tickCounter >= 10))) {
+          return;
+        }
+
+        updateloop = setTimeout(
+          update,
+          Key.state.swipe
+            ? 500
+            : (15 * settings.game.speedMult) /
+                (settings.game.hardModeMult.on
+                  ? settings.game.hardModeMult.val
+                  : 1),
+        );
+
+        directionHandler();
+        move(Snake);
+
+        if (tickCounter >= map.tile_length) {
+          updateDirection();
+          checkCollision(Snake);
+
+          checkCollision(
+            new (function () {
+              this.x = Snake.x;
+              this.y = Snake.y;
+              this.angle = Snake.angle;
+              this.preview = true;
+              move(this);
+              return this;
+            })(),
+          );
+
+          Apples.forEach((apple, index) => {
+            let msg = adressTiles(apple.x, apple.y, "read").state;
+            if (msg !== "apple") {
+              console.error(
+                new Error(`State: ${msg} and index of apple: ${index}`),
+              );
+
+              start = true;
+            }
+          });
+
+          if (adressTiles(Snake.x, Snake.y, "read").state === "apple") {
+            eat();
+          } else {
+            appleGrow = false;
+          }
+          updateTiles();
+          manageSnakeSegments(Snake.x, Snake.y);
+          tickCounter = 0;
+        }
+        tickCounter++;
+      }
+
+      function directionHandler() {
+        let bufferDirection = Snake.nextAngle;
+        if (Key.state.up === true) {
+          Snake.nextAngle = 270;
+        }
+        if (Key.state.down === true) {
+          Snake.nextAngle = 90;
+        }
+        if (Key.state.left === true) {
+          Snake.nextAngle = 180;
+        }
+        if (Key.state.right === true) {
+          Snake.nextAngle = 0;
+        }
+
+        if (
+          bufferDirection !== Snake.nextAngle &&
+          Snake.bufferAngle === Snake.angle
+        ) {
+          directionChange = true;
+          Snake.bufferAngle = bufferDirection;
+        }
+      }
+
+      function getInverseDir(normalDir) {
+        return normalDir + 180 < 360 ? normalDir + 180 : normalDir - 180;
+      }
+
+      function updateDirection() {
+        let wrongDir = getInverseDir(Snake.angle);
+
+        if (
+          directionChange &&
+          (Snake.nextAngle === Snake.angle ||
+            getInverseDir(Snake.nextAngle) === Snake.angle) &&
+          Snake.bufferAngle !== getInverseDir(Snake.angle)
+        ) {
+          Snake.angle = Snake.bufferAngle;
+        } else {
+          if (Snake.nextAngle !== wrongDir) {
+            directionChange = false;
+            Snake.angle = Snake.nextAngle;
+            Snake.bufferAngle = Snake.angle;
+          }
+        }
+      }
+
+      function move(obj) {
+        if (!obj?.last) {
+          obj.last = { x: obj.x, y: obj.y };
+        }
+
+        switch (obj.angle) {
+          case 0:
+            obj.x = obj.last.x + tickCounter;
+            break;
+          case 90:
+            obj.y = obj.last.y + tickCounter;
+            break;
+          case 180:
+            obj.x = obj.last.x - tickCounter;
+            break;
+          case 270:
+            obj.y = obj.last.y - tickCounter;
+            break;
+        }
+        if (tickCounter === 10 && (obj.x % 10 !== 0 || obj.y % 10 !== 0)) {
+          console.error(new Error("x: " + Obj.x + ", y: " + Obj.y));
+          Apples.forEach((apple, index) => {
+            let msg = adressTiles(apple.x, apple.y, "read").state;
+            if (msg !== "apple") {
+              console.error(
+                new Error(`State: ${msg} and index of apple: ${index}`),
+              );
+            }
+          });
+          alert("BUG");
+        }
+      }
+
+      function checkCollision(obj = Snake) {
+        checkBodyCollision = () => {
+          if (
+            adressTiles(obj.x, obj.y, "read").state === "segment" &&
+            !(
+              obj.x === SnakeSegments[0].last.x &&
+              obj.y === SnakeSegments[0].last.y
+            ) &&
+            !(
+              obj?.preview &&
+              obj.x === SnakeSegments[1].x &&
+              obj.y === SnakeSegments[1].y
+            )
+          ) {
+            dead();
+          }
+        };
+
+        if (
+          obj.x < map.start_x ||
+          obj.x > map.start_x + map.width - map.tile_length ||
+          obj.y < map.start_y ||
+          obj.y > map.start_y + map.height - map.tile_length
+        ) {
+          if (settings.game.walls) {
+            dead();
+            return;
+          }
+          obj.x = ((obj.x + map.width - map.start_x) % map.width) + map.start_x;
+          obj.y =
+            ((obj.y + map.height - map.start_y) % map.height) + map.start_y;
+          checkBodyCollision();
+        }
+        checkBodyCollision();
+
+        /*
+       checkBodyCollision = () => {
+                if (
+                  adressTiles(Snake.x, Snake.y, "read").state === "segment" &&
+                  !(
+                    Snake.x === SnakeSegments[0].last.x &&
+                    Snake.y === SnakeSegments[0].last.y
+                  )
+                ) {
+                  dead();
+                }
+              };
+
+
+              if (Snake.x > map.start_x + map.width - map.tile_length) {
+                if (settings.game.walls) {
+                  dead();
+                } else {
+                  Snake.x -= map.width;
+                }
+                checkBodyCollision();
+                return;
+              }
+              if (Snake.x < map.start_x) {
+                if (settings.game.walls) {
+                  dead();
+                } else {
+                  Snake.x += map.width;
+                }
+                checkBodyCollision();
+                return;
+              }
+              if (Snake.y > map.start_y + map.height - map.tile_length) {
+                if (settings.game.walls) {
+                  dead();
+                } else {
+                  Snake.y -= map.height;
+                }
+                checkBodyCollision();
+                return;
+              }
+              if (Snake.y < map.start_y) {
+                if (settings.game.walls) {
+                  dead();
+                } else {
+                  Snake.y += map.height;
+                }
+                checkBodyCollision();
+                return;
+              }
+              checkBodyCollision();
+             */
+      }
+
+      function manageSnakeSegments(x, y) {
+        SnakeSegments.push(new SnakeSegmentConstructor(x, y));
+        if (SnakeSegments.length > Snake.segmentCount) {
+          let oldSegment = SnakeSegments.shift();
+          adressTiles(
+            oldSegment?.last === undefined ? oldSegment.x : oldSegment.last.x,
+            oldSegment?.last === undefined ? oldSegment.y : oldSegment.last.y,
+            "free",
+          );
+        }
+      }
+
+      function updateTiles() {
+        Snake.last.x = Snake.x;
+        Snake.last.y = Snake.y;
+
+        if (
+          adressTiles(
+            SnakeSegments[SnakeSegments.length - 1].x,
+            SnakeSegments[SnakeSegments.length - 1].y,
+            "read",
+          ).state === "apple"
+        ) {
+          alive = false;
+        }
+        adressTiles(Snake.x, Snake.y, "head");
+      }
+
+      function eat() {
+        Apples = Apples.filter((element, index) =>
+          element.x === Snake.x && element.y === Snake.y ? false : true,
+        );
+
+        Snake.segmentCount++;
+        appleGrow = true;
+        document.getElementById("score").textContent =
+          (Snake.segmentCount - Snake.startSegmentCount) /
+          settings.game.speedMult;
+
+        if (
+          tiles.filter(
+            (tileObj) => tileObj.state === "free" || tileObj.state === "apple",
+          ).length <= 1
+        ) {
+          alert("U WIN!!!");
+          alive = false;
+          Apples = [];
+        } else {
+          if (
+            tiles.filter((tileObj) => tileObj.state === "free").length !== 0
+          ) {
+            question(); ///english
+            Apples.push(new Apple(null));
+            if (
+              tiles.filter((tileObj) => tileObj.state === "free").length !==
+                0 &&
+              settings.game.apples.hydra
+            ) {
+              Apples.push(new Apple(null));
+            }
+          }
+        }
+        if (settings.game.hardModeMult.val < 2 && true) {
+          settings.game.hardModeMult.val += 0.04;
+        }
+      }
+
+      function adressTiles(x, y, state) {
+        //xy in px
+        if (x % 10 !== 0 || y % 10 !== 0) {
+          console.error("em");
+        }
+        let targetTile =
+          tiles[
+            (((x - map.start_x) / map.tile_length) * map.height) /
+              map.tile_length +
+              (y - map.start_y) / map.tile_length
+          ];
+        if (state === "read") {
+          return targetTile;
+        } else {
+          if (targetTile === undefined) {
+            //canvas.setAttribute("style", "background-color:#ff0000");
+            console.error(targetTile, x, y, state);
+          } else {
+            targetTile.state = state;
+          }
+        }
+      }
+
+      function dead() {
+        alive = false;
+        start = true;
+        Snake.nextAngle = "none";
+        mainMenu();
+        menuButtonJs.id = 0;
+        createElements(
+          [
+            new menuButtonJs("Main Menu", function () {
+              newGame();
+              pauseGame();
+              mainMenu();
+            }),
+            new inputButton("LeaderBoardEntry", (e) =>
+              leaderBoardEntry(getInputText(e, "string")),
+            ),
+            new menuButtonJs("New Game", newGame),
+          ],
+          css.mainMenu.buttonDiv,
+        );
+        css.menuText.innerText = "You Died";
+      }
+
+      //Draw
+
+      function loadImages() {
+        backgroundImage.src = `${path}textures/Background.png`;
+        Snake.img = new Image();
+        Snake.img.src = Snake.src;
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(backgroundImage, 0, 0);
+
+        //ctx.fillRect(map.start_x, map.start_y, map.width, map.height);
+
+        rotate(SnakeSegments[0], {
+          x: 20,
+          y: 0,
+          angle: getInverseDir(SnakeSegments[0].angle),
+          connect: "tail",
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        rotate(SnakeSegments[1], {
+          x: 0,
+          y: 0,
+          angle: getInverseDir(SnakeSegments[1].angle),
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        for (let n = 2; n < SnakeSegments.length - 1; n++) {
+          rotate(SnakeSegments[n]);
+        }
+        rotate(SnakeSegments[SnakeSegments.length - 1], {
+          x: 0,
+          y: 0,
+          angle: SnakeSegments[SnakeSegments.length - 2].angle,
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        Apples.forEach((element) => {
+          rotate(element);
+        });
+
+        ctx.fillStyle = "#FF6A00";
+        rotate(Snake, {
+          x: Snake.srcCoords.x,
+          y: Snake.srcCoords.y,
+          angle: Snake.angle,
+          connect: "head",
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        if (!appleGrow) {
+          move(SnakeSegments[0]);
+        }
+
+        if (settings.dev.touchbox) {
+          let aspectRatioRatio;
+          ctx.fillRect(
+            screenToCanvasPx("width"),
+            screenToCanvasPx("height"),
+
+            swipeThresholdButForCanvas("width") * 2,
+            swipeThresholdButForCanvas("height") * 2,
+          );
+
+          function screenToCanvasPx(dir) {
+            aspectRatioRatio =
+              dir === "height"
+                ? canvas.width /
+                  canvas.height /
+                  (deviceInfo.width / deviceInfo.height)
+                : deviceInfo.width /
+                  deviceInfo.height /
+                  (canvas.width / canvas.height);
+
+            let calc =
+              ((touch.lastpos[dir === "width" ? "x" : "y"] * canvas[dir]) /
+                deviceInfo[dir]) *
+              ((dir === "width" || dir === "height") && aspectRatioRatio > 1
+                ? aspectRatioRatio
+                : 1);
+
+            //calc ratio right
+
+            calc -=
+              aspectRatioRatio > 1
+                ? (canvas[dir] * (aspectRatioRatio - 1)) / 2
+                : 0;
+
+            //calc at mousepointer
+
+            calc -= swipeThresholdButForCanvas();
+
+            return calc;
+          }
+          function swipeThresholdButForCanvas() {
+            return (
+              settings.controls.swipeThreshold.val *
+              (canvas.width /
+                canvas.height /
+                (deviceInfo.width / deviceInfo.height) <
+              1
+                ? canvas.width /
+                  (canvas.width /
+                    canvas.height /
+                    (deviceInfo.width / deviceInfo.height)) /
+                  deviceInfo.width
+                : (canvas.height *
+                    (canvas.width /
+                      canvas.height /
+                      (deviceInfo.width / deviceInfo.height))) /
+                  deviceInfo.height)
+            );
+          }
+        }
+
+        requestAnimationFrame(draw);
+
+        function rotate(
+          imgObj,
+          extraObj = {
+            x: imgObj.srcCoords.x,
+            y: imgObj.srcCoords.y,
+            width: Math.abs(imgObj.width),
+            height: Math.abs(imgObj.height),
+            angle: imgObj.angle,
+          },
+        ) {
+          if (imgObj === "DONT DRAW!!!") {
+            return;
+          }
+          let wallWrap = false;
+          if (!extraObj?.width || !extraObj?.height) {
+            console.error(
+              new Error(
+                `Missing property w or h\nw: ${extraObj.width}\nh: ${extraObj.height}`,
+              ),
+            );
+          }
+          if (extraObj.connect === "tail" && imgObj.wallWrap !== true) {
+            extraObj.angle = getInverseDir(extraObj.angle);
+          }
+          if (
+            (imgObj.x < map.start_x ||
+              imgObj.x > map.start_x + map.width - map.tile_length ||
+              imgObj.y < map.start_y ||
+              imgObj.y > map.start_y + map.height - map.tile_length) &&
+            imgObj.wallWrap !== true
+          ) {
+            wallWrap = true;
+            rotate(
+              ...Object.entries(
+                new (function () {
+                  this.imgObj = {};
+                  this.extraObj = structuredClone(extraObj);
+                  if (
+                    imgObj.x < map.start_x ||
+                    imgObj.x > map.start_x + map.width - map.tile_length
+                  ) {
+                    this.imgObj.x =
+                      imgObj.x + map.width * (imgObj.x < map.start_x ? 1 : -1);
+                    this.imgObj.y = imgObj.y;
+
+                    extraObj.width =
+                      imgObj.x < this.imgObj.x
+                        ? map.tile_length + imgObj.x - map.start_x
+                        : map.start_x - this.imgObj.x;
+
+                    this.extraObj.width = imgObj.width - extraObj.width;
+                    this.extraObj.x += 10 - this.extraObj.width;
+                    this.imgObj.x +=
+                      (10 - this.extraObj.width) *
+                      (imgObj.x < map.start_x ? -1 : 1);
+                  } else {
+                    this.imgObj.x = imgObj.x;
+                    this.imgObj.y =
+                      imgObj.y + map.height * (imgObj.y < map.start_y ? 1 : -1);
+                    extraObj.width =
+                      imgObj.y < this.imgObj.y
+                        ? map.tile_length + imgObj.y - map.start_y
+                        : map.start_y - this.imgObj.y;
+
+                    this.extraObj.width = imgObj.width - extraObj.width;
+                    this.extraObj.x += 10 - this.extraObj.width;
+                    this.imgObj.y +=
+                      (10 - this.extraObj.width) *
+                      (imgObj.y < map.start_y ? -1 : 1);
+                  }
+
+                  this.extraObj.height = imgObj.height;
+                  this.imgObj.img = imgObj.img;
+                  this.imgObj.wallWrap = true;
+                  if (settings.game.walls) {
+                    this.imgObj = "DONT DRAW!!!";
+                  }
+                })(),
+              ).map((element) => element[1]),
+            );
+          }
+
+          ctx.save();
+          ctx.translate(imgObj.x, imgObj.y);
+          ctx.rotate((extraObj.angle * Math.PI) / 180);
+          ctx.translate(
+            extraObj.angle >= 180 ? -1 * map.tile_length : 0,
+            extraObj.angle <= 180 && extraObj.angle !== 0
+              ? -1 * map.tile_length
+              : 0,
+          );
+          ctx.scale(
+            imgObj.height / map.tile_length,
+            imgObj.width / map.tile_length,
+          );
+          ctx.translate(
+            imgObj.height < 0 ? imgObj.height : 0,
+            imgObj.width < 0 ? imgObj.width : 0,
+          );
+
+          if (imgObj.wallWrap) {
+            if (settings.game.walls) {
+              return;
+            }
+            switch (extraObj.connect) {
+              case "head": {
+                ctx.fillRect(0, 1, tickCounter > 3 ? tickCounter - 4 : 0, 8);
+                break;
+              }
+              case "tail": {
+                ctx.fillRect(0, 1, tickCounter < 6 ? 3 : 0, 8);
+                break;
+              }
+            }
+          } else {
+            switch (extraObj.connect) {
+              case "head": {
+                ctx.fillRect(
+                  7 + (wallWrap && tickCounter > 4 ? 4 - tickCounter : 0),
+                  1,
+                  wallWrap && tickCounter > 4 ? -7 : -tickCounter,
+                  8,
+                );
+                break;
+              }
+              case "tail": {
+                ctx.fillRect(
+                  3,
+                  1,
+                  appleGrow || (wallWrap && tickCounter > 3)
+                    ? 0
+                    : map.tile_length - tickCounter + (wallWrap ? -3 : 1),
+                  8,
+                );
+                break;
+              }
+            }
+          }
+          ctx.drawImage(
+            imgObj.img,
+            extraObj.x,
+            extraObj.y,
+            extraObj.width,
+            extraObj.height,
+            0,
+            0,
+            extraObj.width,
+            extraObj.height,
+          );
+
+          ctx.restore();
+        }
+      }
+      //english
+    </script>
+    <script>
+      let futureText;
+      let questionCount = localStorage.getItem("englAttempts")
+        ? Number(localStorage.getItem("englAttempts"))
+        : 0;
+      (async () => {
+        futureText = await (await fetch("future.JSON")).json();
+      })();
+
+      function question() {
+        pauseGame();
+
+        let currentQuestion =
+          futureText[
+            Object.entries(futureText)[
+              `${questionCount}`[`${questionCount}`.length - 1]
+            ][0]
+          ][Math.floor(questionCount / 10)];
+        currentQuestion.attempts = 0;
+
+        console.log(currentQuestion);
+
+        createElements(
+          [
+            {
+              elementType: "div",
+              id: "questionContainer",
+              children: [
+                {
+                  elementType: "p",
+                  id: "questionH1",
+                  text: currentQuestion.question,
+                },
+                {
+                  elementType: "div",
+                  id: "input",
+                  children: [
+                    {
+                      elementType: "input",
+                      id: "input^2",
+                      placeholder: "Fill the gap",
+                    },
+                    new menuButtonJs("Ok", (e) => {
+                      if (
+                        e.target.parentNode.children[0].value ===
+                        currentQuestion.answer
+                      ) {
+                        e.target.parentNode.parentNode.children[3].className =
+                          "menuButton";
+                        questionCount++;
+                        localStorage.setItem("englAttempts", questionCount);
+                      } else {
+                        currentQuestion.attempts++;
+
+                        e.target.parentNode.parentNode.children[2].innerText = `Attempts: ${currentQuestion.attempts}`;
+                      }
+                    }),
+                  ],
+                },
+                { elementType: "p", id: "attempts", text: "Attempts: 0" },
+                {
+                  elementType: "button",
+                  id: "finished",
+                  class: "menuButton hidden",
+                  text: "Continue",
+                  onclick: function () {
+                    createElements(
+                      [
+                        { elementType: "header", id: "menuText" },
+                        { elementType: "div", id: "buttonDiv" },
+                      ],
+                      css.mainMenu,
+                    );
+                    css.mainMenu.buttonDiv =
+                      document.getElementById("buttonDiv");
+                    css.menuText = document.getElementById("menuText");
+                    continueGame();
+                  },
+                },
+              ],
+            },
+          ],
+          css.mainMenu,
+        );
+      }
+
+      /*TODO
+                                statistics
+                                  4 fun
+
+
+            win menu + time // and score
+
+                                settings
+                                  choose all colors
+
+                                settings obj editing (for super nerds like u bc otherwise u should use the gui
+
+            BUG FIX:
+              stop move if death when move() x 10
+              canvas  % (operator) thing for game
+                                                                                      Someday:
+                                                                                                Language
+                                                                                                leaderboard (global)
+
+
+                                                speed slider / predetermined options
+                                                */
+    </script>
+    <!--
+    engl styl€
+    -->
+    <style>
+      #questionContainer {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+
+        div {
+          display: flex;
+          gap: 10px;
+
+          button {
+            margin: 0;
+          }
+
+          input {
+            font-size: 48px;
+
+            width: 100%;
+            background: linear-gradient(cyan, #00c0c0, cyan);
+            border: solid;
+            border-color: blueviolet;
+            border-width: 5px;
+            border-radius: 20px;
+          }
+        }
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </body>
+</html>
