@@ -1582,6 +1582,9 @@
         Snake.nextAngle = 0;
         Snake.bufferAngle = 0;
         Snake.angle = 0;
+
+        ///engl
+        wrongCount = 0;
       }
 
       function generateSnakeSegments(x, y) {
@@ -1888,12 +1891,11 @@
 
         updateloop = setTimeout(
           update,
-          Key.state.swipe
-            ? 500
-            : (15 * settings.game.speedMult) /
-                (settings.game.hardModeMult.on
-                  ? settings.game.hardModeMult.val
-                  : 1),
+          (15 * settings.game.speedMult) /
+            (settings.game.hardModeMult.on
+              ? settings.game.hardModeMult.val
+              : 1) /
+            1.1 ** wrongCount,
         );
 
         directionHandler();
@@ -2494,6 +2496,7 @@
       //english
     </script>
     <script>
+      let wrongCount = 0;
       let futureText;
       let questionCount = localStorage.getItem("englAttempts")
         ? Number(localStorage.getItem("englAttempts"))
@@ -2503,6 +2506,17 @@
       })();
 
       function question() {
+        if (
+          questionCount >
+          (Snake.segmentCount - Snake.startSegmentCount) /
+            settings.game.speedMult
+        ) {
+          console.log("skip");
+          return;
+        }
+        if (questionCount >= 400) {
+          return alert(`You answered all questions!\nYou won!!!`);
+        }
         pauseGame();
 
         let currentQuestion =
@@ -2546,7 +2560,8 @@
                         localStorage.setItem("englAttempts", questionCount);
                       } else {
                         currentQuestion.attempts++;
-
+                        wrongCount++;
+                        console.log(wrongCount);
                         e.target.parentNode.parentNode.children[2].innerText = `Attempts: ${currentQuestion.attempts}`;
                       }
                     }),
