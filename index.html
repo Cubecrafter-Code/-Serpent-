@@ -2,21 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
       href="/-Serpent-/favicon.png"
     />
-    <link
-      rel="icon"
-      type="image/png"
-      href="/-Serpent-/favicon.png"
-      />
+    <link rel="icon" type="image/png" href="/-Serpent-/favicon.png" />
     <link rel="apple-touch-icon" href="/-Serpent-/favicon.png" />
     <title>Schlange</title>
-    <canvas id="canvas1" width="320" height="180"></canvas>
 
     <div id="scoreDiv">
       <header class="scoreText">Punktzahl:</header>
@@ -27,40 +25,99 @@
       <div class="pauseIcon" onclick="pauseGame()"></div>
     </button>
     <style>
+      :root {
+        --gameAreaMargin: 0.9;
+        --innerBackgroundColor: #00ff00;
+        --outerBackgroundColor: #3f2800;
+      }
+
       html,
       body {
         margin: 0;
         padding: 0;
         overflow: hidden;
+        position: fixed;
+
+        width: 100%;
+        height: 100%;
 
         touch-action: none;
       }
 
-      body {
+      #gameContainer {
+        z-index: 1;
+        position: absolute;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100dvh;
-        background: #3f2800;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--outerBackgroundColor);
       }
 
-      canvas {
-        background-color: #3f2800;
-        width: 100vw;
-        height: 100vh;
+      #gameContainer::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        width: min(
+          calc(var(--gameAreaMargin) * 100vw * 240 / 250),
+          calc(var(--gameAreaMargin) * 100vh * 240 / 170)
+        ) !important;
+        height: min(
+          calc(var(--gameAreaMargin) * 100vh * 160 / 170),
+          calc(var(--gameAreaMargin) * 100vw * 160 / 250)
+        ) !important;
+
+        background: var(--innerBackgroundColor);
+      }
+
+      canvas,
+      #gameBg {
+        position: absolute;
+        touch-action: none;
+        user-select: none;
         object-fit: contain;
         image-rendering: pixelated;
         image-rendering: crisp-edges;
-        touch-action: none;
+      }
+
+      #gameCanvas {
+        z-index: 3;
+        width: min(
+          calc(var(--gameAreaMargin) * 100vw * 240 / 250),
+          calc(var(--gameAreaMargin) * 100vh * 240 / 170)
+        ) !important;
+        height: min(
+          calc(var(--gameAreaMargin) * 100vh * 160 / 170),
+          calc(var(--gameAreaMargin) * 100vw * 160 / 250)
+        ) !important;
+
         user-select: none;
-        display: block;
+        touch-action: none;
+        outline: none;
+      }
+
+      #realPxCanvas {
+        z-index: 4;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      #gameBg {
+        z-index: 2;
+        width: calc(var(--gameAreaMargin) * 100%);
+        height: calc(var(--gameAreaMargin) * 100%);
+        pointer-events: none;
       }
 
       #scoreDiv {
+        z-index: 4;
         position: absolute;
         top: 10px;
         left: 10px;
-        background: black;
         width: 250px;
       }
 
@@ -74,8 +131,8 @@
         font-weight: bold;
         pointer-events: none;
         -webkit-text-stroke: 2px aqua;
-        white-space: nowrap; /* no wrapping */
-        overflow: hidden; /* hide overflow */
+        white-space: nowrap;
+        overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
       }
@@ -127,6 +184,7 @@
       }
 
       #mainMenu {
+        z-index: 4;
         position: absolute;
         width: 500px;
         left: 50%;
@@ -321,9 +379,14 @@
 
         display: grid;
         grid-gap: 10px;
-        grid-template-columns: repeat(4, minmax(1px, 1fr));
+        grid-template-columns: repeat(var(--gridCollums), minmax(1px, 1fr));
         grid-auto-rows: min-content;
 
+        margin: 10px;
+      }
+
+      .gridContainer h4 {
+        grid-column: 1 / -1;
         margin: 10px;
       }
 
@@ -464,31 +527,27 @@
       .table .tableRow:nth-child(4) td {
         border-bottom: 3px solid rgba(0, 0, 0, 0.2);
       }
+
+      .colorInputWrapper {
+        display: flex;
+
+        align-items: center;
+      }
     </style>
-  </head>
-  <body onload="Game()">
-    <div class="menu" id="mainMenu">
-      <header id="menuText"></header>
-      <div id="buttonDiv"></div>
-    </div>
 
+    <!--EventListeners-->
     <script>
-      const path = `/${window.location.pathname.split("/")[1]}/`;
-      let canvas = document.getElementById("canvas1");
-      let ctx = canvas.getContext("2d");
-      ctx.imageSmoothingEnabled = false;
-
       function resizeCanvas() {
-        const baseWidth = canvas.width;
-        const baseHeight = canvas.height;
+        const baseWidth = gameCanvas.width;
+        const baseHeight = gameCanvas.height;
 
         const scale = Math.min(
           window.innerWidth / baseWidth,
           window.innerHeight / baseHeight,
         );
 
-        canvas.style.width = baseWidth * scale + "px";
-        canvas.style.height = baseHeight * scale + "px";
+        gameCanvas.style.width = baseWidth * scale + "px";
+        gameCanvas.style.height = baseHeight * scale + "px";
 
         deviceInfo = {
           width: window.innerWidth,
@@ -498,7 +557,7 @@
         };
 
         settings.controls.swipeThreshold.val =
-          (deviceInfo.aspectRatio < canvas.width / canvas.height
+          (deviceInfo.aspectRatio < gameCanvas.width / gameCanvas.height
             ? deviceInfo.width
             : deviceInfo.height) /
           (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
@@ -510,132 +569,6 @@
       window.addEventListener("orientationchange", () => {
         setTimeout(resizeCanvas, 100);
       });
-
-      canvas.tabIndex = 0;
-      canvas.focus();
-
-      let deviceInfo = {
-        width: canvas.getBoundingClientRect().width,
-        height: canvas.getBoundingClientRect().height,
-
-        aspectRatio:
-          canvas.getBoundingClientRect().width /
-          canvas.getBoundingClientRect().height,
-      };
-
-      let css = {
-        mainMenu: document.getElementById("mainMenu"),
-        menuText: document.getElementById("menuText"),
-        menuButtons: document.getElementsByClassName("menuButton"),
-        tables: {},
-      };
-
-      css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
-
-      let placeholderCount = 0;
-      function placeholder() {
-        console.error(new Error(`placeholder: ${placeholderCount}`));
-        return `${placeholderCount++}`;
-      }
-
-      let Key = {
-        state: {
-          up: false,
-          left: false,
-          down: false,
-          right: false,
-
-          swipe: false,
-        },
-        functions: {
-          pause: pauseGame,
-          toggleFullscreen,
-          /*scoreUp: function () {
-                       Snake.segmentCount++;
-                     },*/
-        },
-      };
-
-      let Keybinds;
-
-      let leaderboardArr = localStorage.getItem("leaderboardArray")
-        ? JSON.parse(localStorage.getItem("leaderboardArray"))
-        : [
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-            { name: "-", score: 0 },
-
-            { name: "-", score: 0 },
-          ];
-
-      let tickCounter = 0;
-      let alive = false;
-      let start = true;
-      let updateloop;
-      let directionChange;
-
-      let map = {
-        start_x: 40,
-        start_y: 10,
-        width: 240,
-        height: 160,
-        tile_length: 10,
-        appleCout: 2,
-      };
-
-      let backgroundImage = new Image();
-      let bufferDirection;
-      let Snake = {
-        x: 80,
-        y: 80,
-        last: { x: 80, y: 80 },
-        nextAngle: 0,
-        bufferAngle: 0,
-        angle: 0,
-        segmentCount: 4,
-        startSegmentCount: 4,
-        width: map.tile_length,
-        height: map.tile_length,
-        src: `${path}textures/Spreadsheet.png`,
-        srcCoords: { x: 10, y: 0 },
-      };
-
-      let SnakeSegments = [];
-
-      let tiles = [];
-      for (let b = 0; b < map.width / map.tile_length; b++) {
-        for (let c = 0; c < map.height / map.tile_length; c++) {
-          let tileObj = {
-            name: `tileObj_${b}_${c}`,
-            x: b * map.tile_length,
-            y: c * map.tile_length,
-            state: "free",
-          };
-          tiles.push(tileObj);
-        }
-      }
-
-      let Apples = [];
-
-      let appleGrow = false;
-
-      let touch = {
-        lastpos: { x: 0, y: 0 },
-        currentpos: { x: 0, y: 0 },
-      };
-
-      let settings = JSON.parse(
-        localStorage.getItem("settings") === null
-          ? "{}"
-          : localStorage.getItem("settings"),
-      );
 
       document.onkeydown = function (e) {
         if (e.repeat === false) {
@@ -668,16 +601,6 @@
           Key.functions[Keybinds.functions?.[inputKey]] !== undefined
         ) {
           Key.functions[Keybinds.functions?.[inputKey]]();
-        }
-
-        if (start && inputKey !== "Escape" && alive) {
-          alive = true;
-          start = false;
-          directionHandler();
-          updateDirection();
-          SnakeSegments.pop();
-          manageSnakeSegments(Snake.x, Snake.y);
-          update();
         }
       }
 
@@ -774,9 +697,10 @@
           true,
         );
       }
+    </script>
 
-      //Menu
-
+    <!--Menus-->
+    <script>
       function createElements(elementArr, parentObj, replaceBool = true) {
         if (replaceBool) {
           parentObj.replaceChildren();
@@ -964,6 +888,21 @@
         }
       }
 
+      class colorInput {
+        static id = 0;
+        constructor(obj, val) {
+          this.elementType = "input";
+          this.type = "color";
+          this.id = `${this.id}_input`;
+          this.value = obj[val];
+          this.oninput = function () {
+            obj[val] = this.value;
+            changeColor(obj, val);
+            localStorage.setItem("settings", JSON.stringify(settings));
+          };
+        }
+      }
+
       class slider {
         static id = 0;
         constructor(text, obj, val) {
@@ -990,7 +929,7 @@
 
                 e.target.parentNode.children[0].innerText = `${text}: ${" ".repeat(3 - `${e.target.value}`.length)}${e.target.value}`;
                 settings.controls.swipeThreshold.val =
-                  (deviceInfo.aspectRatio < canvas.width / canvas.height
+                  (deviceInfo.aspectRatio < gameCanvas.width / gameCanvas.height
                     ? deviceInfo.width
                     : deviceInfo.height) /
                   (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
@@ -1005,11 +944,11 @@
 
       class grid {
         static id = 0;
-        constructor(obj) {
+        constructor(text, obj, gridType) {
           this.elementType = "div";
           this.className = "gridContainer";
-          this.children = [];
           this.id = `grid_${grid.id++}`;
+          this.children = [{ elementType: "h4", id: `${this.id}_h1`, text }];
           let n = 0;
 
           Object.entries(obj).forEach((section) => {
@@ -1027,18 +966,9 @@
               ],
             });
 
-            Object.entries(section[1]).forEach((keybind) => {
-              this.children[this.children.length - 1].children.push({
-                elementType: "div",
-                className: "gridSectionRow",
-                id: `${this.id}_section_row_${keybind[0]}`,
-
-                children: [
-                  {
-                    elementType: "p",
-                    id: `${this.id}_section_bind_${n}`,
-                    text: `${keybind[0]}`,
-                  },
+            Object.entries(section[1]).forEach((setting) => {
+              const keybindElements = () => {
+                return [
                   {
                     elementType: "div",
                     id: `${this.id}_section_binds_${n}`,
@@ -1046,7 +976,7 @@
                       {
                         elementType: "p",
                         id: `${this.id}_section_binds_text_${n}`,
-                        text: keybind[1].map((element, index) => {
+                        text: setting[1].map((element, index) => {
                           return `${index === 0 ? "" : " "}${element}`;
                         }),
                       },
@@ -1105,7 +1035,7 @@
                           target.parentNode.children[0].innerText;
 
                         target.parentNode.children[1].children[0].innerHTML =
-                          getKeybinds()[section[0]][keybind[0]].map(
+                          getKeybinds()[section[0]][setting[0]].map(
                             (element, index) => {
                               return `${index === 0 ? "" : " "}${element}`;
                             },
@@ -1125,21 +1055,21 @@
                     );
                   }),
                   new menuButtonJs(
-                    obj[section[0]][keybind[0]].length === 0
+                    obj[section[0]][setting[0]].length === 0
                       ? "Default"
                       : "Reset",
 
                     async function (e) {
                       let currentKeybinds = getKeybinds();
                       if (
-                        currentKeybinds[section[0]][keybind[0]].length === 0
+                        currentKeybinds[section[0]][setting[0]].length === 0
                       ) {
                         this.innerText = "Reset";
 
                         await (await fetch(`${path}default/keybinds.JSON`))
                           .json()
                           .then((value) =>
-                            getKeybinds(value)[section[0]][keybind[0]].forEach(
+                            getKeybinds(value)[section[0]][setting[0]].forEach(
                               (element) => {
                                 let oldKeybindText = document.getElementById(
                                   `${e.target.parentNode.parentNode.parentNode.id}_section_row_${
@@ -1147,9 +1077,7 @@
                                   }`,
                                 )?.children[1].children[0];
 
-                                console.log(element, oldKeybindText);
-
-                                Keybinds[section[0]][element] = keybind[0];
+                                Keybinds[section[0]][element] = setting[0];
                                 if (oldKeybindText !== undefined) {
                                   oldKeybindText.innerText =
                                     oldKeybindText.innerText.replace(
@@ -1167,14 +1095,14 @@
                             ),
                           );
                         this.parentNode.children[1].children[0].innerHTML =
-                          getKeybinds()[section[0]][keybind[0]].map(
+                          getKeybinds()[section[0]][setting[0]].map(
                             (element, index) => {
                               return `${index === 0 ? "" : " "}${element}`;
                             },
                           );
                       } else {
                         this.innerText = "Default";
-                        currentKeybinds[section[0]][keybind[0]].forEach(
+                        currentKeybinds[section[0]][setting[0]].forEach(
                           (element) => {
                             delete Keybinds[section[0]][element];
                           },
@@ -1187,10 +1115,59 @@
                       );
                     },
                   ),
+                ];
+              };
+              const colorElements = () => {
+                return [
+                  new colorInput(section[1], setting[0]),
+                  new menuButtonJs("Reset", async function (e) {
+                    await (await fetch(`${path}default/settings.JSON`))
+                      .json()
+                      .then((value) => {
+                        this.parentNode.children[1].value = settings.colors[
+                          section[0]
+                        ][setting[0]] = value.colors[section[0]][setting[0]];
+                        changeColor(value.colors[section[0]], setting[0]);
+                      });
+
+                    localStorage.setItem("settings", JSON.stringify(settings));
+                  }),
+                ];
+              };
+
+              this.children.at(-1).children.push({
+                elementType: "div",
+                className: "gridSectionRow",
+                id: `${this.id}_section_row_${setting[0]}`,
+
+                children: [
+                  {
+                    elementType: "p",
+                    id: `${this.id}_section_bind_${n}`,
+                    text: `${setting[0]}`,
+                  },
+                  ...(() => {
+                    switch (gridType) {
+                      case "keybinds":
+                        return keybindElements();
+                      case "colors":
+                        return colorElements();
+                      default:
+                        console.error(
+                          new Error(`Invalid grid type:\n${gridType}`),
+                        );
+                    }
+                  })(),
+                  //
                 ],
               });
+              console.log(this.children.at(-1));
             });
           });
+          document.documentElement.style.setProperty(
+            "--gridCollums",
+            this.children.at(-1).children.at(-1).children.length,
+          );
         }
       }
 
@@ -1244,9 +1221,10 @@
             new menuButtonJs("Settings", settingsMenu),
             new menuButtonJs("Leaderboard", leaderboard),
             /*new menuButtonJs("Statistics", function () {
-                               debugButton(this);
-                             }),*/
+              debugButton(this);
+            }),*/
             new menuButtonJs("New Game", newGame),
+            /*new menuButtonJs("Credits")*/
             new menuButtonJs("Quit", quit),
           ],
           css.mainMenu.buttonDiv,
@@ -1281,10 +1259,11 @@
               mainMenu();
             }),
             new menuButtonJs("Game", gameSettings),
-            new menuButtonJs("Controls", controlSettings),
             new menuButtonJs("Graphics", graphicsSettings),
+            new menuButtonJs("Controls", controlSettings),
             //new menuButtonJs("Language", languageSettings),
             new menuButtonJs("Dev", devSettings),
+            new menuButtonJs("Reset Settings", resetSettings),
             //cookies
           ],
           css.mainMenu.buttonDiv,
@@ -1351,10 +1330,20 @@
         function graphicsSettings() {
           css.menuText.innerText = "Graphics Settings";
           menuButtonJs.id = 0;
+          colorInput.id = 0;
           createElements(
             [
               new menuButtonJs("Back", settingsMenu),
               new menuButtonJs("Toggle Fullscreen", (e) => toggleFullscreen(e)),
+              new grid("Change Colors", settings.colors, "colors"),
+              new menuButtonJs("Resore Default", async function (e) {
+                await (await fetch(`${path}default/settings.JSON`))
+                  .json()
+                  .then((value) => (settings.colors = value.colors));
+                loadColors();
+                graphicsSettings();
+                localStorage.setItem("settings", JSON.stringify(settings));
+              }),
             ],
             css.mainMenu.buttonDiv,
           );
@@ -1386,7 +1375,7 @@
             createElements(
               [
                 new menuButtonJs("Back", controlSettings),
-                new grid(getKeybinds()),
+                new grid("Change Keybinds", getKeybinds(), "keybinds"),
 
                 new menuButtonJs("Reset All", function () {
                   Object.entries(Keybinds).forEach((element) => {
@@ -1424,6 +1413,14 @@
             [
               new menuButtonJs("Back", settingsMenu),
               new menuButtonJs(`Touch: ${settings.dev.touchbox}`, (e) => {
+                if (settings.dev.touchbox) {
+                  realPxCanvasCtx.clearRect(
+                    0,
+                    0,
+                    realPxCanvas.width,
+                    realPxCanvas.height,
+                  );
+                }
                 settings.dev.touchbox = !settings.dev.touchbox;
                 e.target.innerText = `Touch: ${settings.dev.touchbox}`;
                 localStorage.setItem("settings", JSON.stringify(settings));
@@ -1431,6 +1428,13 @@
             ],
             css.mainMenu.buttonDiv,
           );
+        }
+
+        function resetSettings() {
+          if (confirm("Are you sure you want to reset ALL settings?")) {
+            localStorage.removeItem("settings");
+            window.location.reload();
+          }
         }
       }
 
@@ -1456,7 +1460,6 @@
             this[section[0]] = {};
             Object.entries(section[1]).forEach((element) => {
               if (element[0] === "undefined") {
-                console.error(element);
               }
               this[section[0]][element[0]] = [];
             });
@@ -1465,7 +1468,6 @@
                 ? restore[section[0]]
                 : Keybinds[section[0]],
             ).forEach((element) => {
-              console.log(this, section, element);
               this[section[0]][element[1]].push(element[0]);
             });
           });
@@ -1548,8 +1550,8 @@
         }
         document.getElementById("score").innerText = 0;
 
-        Snake.x = 80;
-        Snake.y = 80;
+        Snake.x = 40;
+        Snake.y = 70;
         Snake.last.x = Snake.x;
         Snake.last.y = Snake.y;
         Snake.segmentCount = Snake.startSegmentCount;
@@ -1569,18 +1571,18 @@
 
         Apples =
           settings.game.apples.count === 1
-            ? [new Apple({ x: 230, y: 80 })]
+            ? [new Apple({ x: 170, y: 70 })]
             : (() => {
                 let tempArr = [];
                 for (let n = 0; n < settings.game.apples.count; n++) {
                   tempArr.push(
                     new Apple(
                       [
-                        new Apple({ x: 210, y: 60 }),
-                        new Apple({ x: 250, y: 60 }),
-                        new Apple({ x: 230, y: 80 }),
-                        new Apple({ x: 210, y: 100 }),
-                        new Apple({ x: 250, y: 100 }),
+                        new Apple({ x: 170, y: 50 }),
+                        new Apple({ x: 210, y: 50 }),
+                        new Apple({ x: 190, y: 70 }),
+                        new Apple({ x: 170, y: 90 }),
+                        new Apple({ x: 210, y: 90 }),
                       ][n],
                     ),
                   );
@@ -1595,11 +1597,26 @@
         Snake.nextAngle = 0;
         Snake.bufferAngle = 0;
         Snake.angle = 0;
+
+        document.addEventListener(
+          "Snake:keyDown",
+          (e) => {
+            if (e.detail.key !== "Escape") {
+              start = false;
+              directionHandler();
+              updateDirection();
+              SnakeSegments.pop();
+              manageSnakeSegments(Snake.x, Snake.y);
+              update();
+            }
+          },
+          { once: true },
+        );
       }
 
       function generateSnakeSegments(x, y) {
-        if ((x - map.start_x) / map.tile_length < Snake.segmentCount) {
-          Snake.x += Snake.segmentCount * map.tile_length - map.start_x;
+        if (x / map.tile_length < Snake.segmentCount) {
+          Snake.x += Snake.segmentCount * map.tile_length;
 
           let tempSegment = {
             x: Snake.x,
@@ -1616,15 +1633,11 @@
             let segmentDirection;
             let repeatSegmentSpawnAmount;
             if (tempSegment.y === Snake.y) {
-              if (tempSegment.x !== map.start_x) {
+              if (tempSegment.x !== 0) {
                 segmentDirection = 180;
-                repeatSegmentSpawnAmount =
-                  (tempSegment.x - map.start_x) / map.tile_length;
+                repeatSegmentSpawnAmount = tempSegment.x / map.tile_length;
               } else {
-                if (
-                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
-                  0
-                ) {
+                if ((tempSegment.x / map.tile_length) % 2 === 0) {
                   segmentDirection = 90;
 
                   repeatSegmentSpawnAmount =
@@ -1636,29 +1649,20 @@
                 tempSegment.y === map.height ||
                 tempSegment.y === Snake.y - map.tile_length
               ) {
-                if (
-                  ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
-                  0
-                ) {
+                if ((tempSegment.x / map.tile_length) % 2 === 0) {
                   segmentDirection = 0;
                   repeatSegmentSpawnAmount = 1;
                 } else {
                   segmentDirection = 270;
-                  if (
-                    tempSegment.x ===
-                    map.start_x + map.width - map.tile_length
-                  ) {
-                    repeatSegmentSpawnAmount =
-                      (tempSegment.y - map.start_y) / map.tile_length;
+                  if (tempSegment.x === map.width - map.tile_length) {
+                    repeatSegmentSpawnAmount = tempSegment.y / map.tile_length;
                   } else {
                     if (tempSegment.y === Snake.y - map.tile_length) {
                       repeatSegmentSpawnAmount =
-                        (tempSegment.y - map.start_y - map.tile_length) /
-                        map.tile_length;
+                        (tempSegment.y - map.tile_length) / map.tile_length;
                     } else {
                       repeatSegmentSpawnAmount =
-                        (tempSegment.y - Snake.y - map.start_y) /
-                        map.tile_length;
+                        (tempSegment.y - Snake.y) / map.tile_length;
                     }
                   }
                 }
@@ -1667,21 +1671,15 @@
               } else {
                 if (
                   tempSegment.y === Snake.y + map.tile_length ||
-                  tempSegment.y === map.start_y + map.tile_length
+                  tempSegment.y === 0 + map.tile_length
                 ) {
-                  if (
-                    ((tempSegment.x - map.start_x) / map.tile_length) % 2 ===
-                    0
-                  ) {
+                  if ((tempSegment.x / map.tile_length) % 2 === 0) {
                     segmentDirection = 90;
-                    if (tempSegment.y === map.start_y + map.tile_length) {
+                    if (tempSegment.y === 0 + map.tile_length) {
                       repeatSegmentSpawnAmount =
                         (Snake.y - tempSegment.y - map.tile_length) /
                         map.tile_length;
-                      if (
-                        tempSegment.x ===
-                        map.start_x + map.width - map.tile_length * 2
-                      ) {
+                      if (tempSegment.x === map.width - map.tile_length * 2) {
                         repeatSegmentSpawnAmount++;
                       }
                     } else {
@@ -1693,16 +1691,13 @@
                     repeatSegmentSpawnAmount = 1;
                   }
                 } else {
-                  if (tempSegment.y === map.start_y) {
-                    if (
-                      tempSegment.x ===
-                      map.start_x + map.width - map.tile_length
-                    ) {
+                  if (tempSegment.y === 0) {
+                    if (tempSegment.x === map.width - map.tile_length) {
                       segmentDirection = 180;
                       repeatSegmentSpawnAmount =
-                        (tempSegment.x - map.start_x) / map.tile_length;
+                        tempSegment.x / map.tile_length;
                     } else {
-                      if (tempSegment.x === map.start_x) {
+                      if (tempSegment.x === 0) {
                         segmentDirection = 90;
                         repeatSegmentSpawnAmount =
                           ((Snake.y - tempSegment.y - map.tile_length) * 1) /
@@ -1756,9 +1751,269 @@
       function quit() {
         close();
       }
+    </script>
 
-      /*Game*/
+    <!--Draw-->
+    <script>
+      function changeColor(obj, val) {
+        console.log(obj, val);
+        document.documentElement.style.setProperty(
+          `--${val}Color`,
+          `${obj[val]}`,
+        );
+      }
 
+      function loadColors() {
+        changeColor(settings.colors.background, "innerBackground");
+        changeColor(settings.colors.background, "outerBackground");
+      }
+
+      function loadImages() {
+        Snake.img = new Image();
+        Snake.img.src = Snake.src;
+        Snake.overlay.img = new Image();
+        Snake.overlay.img.src = Snake.overlay.src;
+      }
+
+      function draw() {
+        gameCanvasCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+        gameCanvasCtx.fillStyle = settings.colors.game.apple;
+        Apples.forEach((element) => {
+          rotate(element);
+        });
+
+        gameCanvasCtx.fillStyle = settings.colors.game.snake;
+        rotate(SnakeSegments[0], {
+          x: 20,
+          y: 0,
+          angle: getInverseDir(SnakeSegments[0].angle),
+          connect: "tail",
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        rotate(SnakeSegments[1], {
+          x: 0,
+          y: 0,
+          angle: getInverseDir(SnakeSegments[1].angle),
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        for (let n = 2; n < SnakeSegments.length - 1; n++) {
+          rotate(SnakeSegments[n]);
+        }
+        rotate(SnakeSegments[SnakeSegments.length - 1], {
+          x: 0,
+          y: 0,
+          angle: SnakeSegments[SnakeSegments.length - 2].angle,
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+        rotate(Snake, {
+          x: Snake.srcCoords.x,
+          y: Snake.srcCoords.y,
+          angle: Snake.angle,
+          connect: "head",
+          width: map.tile_length,
+          height: map.tile_length,
+        });
+
+        if (settings.dev.touchbox) {
+          realPxCanvasCtx.clearRect(
+            0,
+            0,
+            realPxCanvas.width,
+            realPxCanvas.height,
+          );
+
+          realPxCanvasCtx.fillStyle = settings.colors.game.touchbox;
+
+          realPxCanvasCtx.fillRect(
+            touch.lastpos.x - settings.controls.swipeThreshold.val,
+            touch.lastpos.y - settings.controls.swipeThreshold.val,
+            settings.controls.swipeThreshold.val * 2,
+            settings.controls.swipeThreshold.val * 2,
+          );
+        }
+
+        requestAnimationFrame(draw);
+
+        function rotate(
+          imgObj,
+          extraObj = {
+            x: imgObj.srcCoords.x,
+            y: imgObj.srcCoords.y,
+            width: Math.abs(imgObj.width),
+            height: Math.abs(imgObj.height),
+            angle: imgObj.angle,
+          },
+        ) {
+          if (imgObj === "DONT DRAW!!!") {
+            return;
+          }
+          let wallWrap = false;
+          if (!extraObj?.width || !extraObj?.height) {
+            console.error(
+              new Error(
+                `Missing property w or h\nw: ${extraObj.width}\nh: ${extraObj.height}`,
+              ),
+            );
+          }
+          if (extraObj.connect === "tail" && imgObj.wallWrap !== true) {
+            extraObj.angle = getInverseDir(extraObj.angle);
+          }
+          if (
+            (imgObj.x < 0 ||
+              imgObj.x > 0 + map.width - map.tile_length ||
+              imgObj.y < 0 ||
+              imgObj.y > 0 + map.height - map.tile_length) &&
+            imgObj.wallWrap !== true
+          ) {
+            wallWrap = true;
+            rotate(
+              ...Object.entries(
+                new (function () {
+                  this.imgObj = {};
+                  this.extraObj = structuredClone(extraObj);
+                  if (
+                    imgObj.x < 0 ||
+                    imgObj.x > 0 + map.width - map.tile_length
+                  ) {
+                    this.imgObj.x =
+                      imgObj.x + map.width * (imgObj.x < 0 ? 1 : -1);
+                    this.imgObj.y = imgObj.y;
+
+                    extraObj.width =
+                      imgObj.x < this.imgObj.x
+                        ? map.tile_length + imgObj.x
+                        : -this.imgObj.x;
+
+                    this.extraObj.width = imgObj.width - extraObj.width;
+                    this.extraObj.x += 10 - this.extraObj.width;
+                    this.imgObj.x +=
+                      (10 - this.extraObj.width) * (imgObj.x < 0 ? -1 : 1);
+                  } else {
+                    this.imgObj.x = imgObj.x;
+                    this.imgObj.y =
+                      imgObj.y + map.height * (imgObj.y < 0 ? 1 : -1);
+                    extraObj.width =
+                      imgObj.y < this.imgObj.y
+                        ? map.tile_length + imgObj.y
+                        : -this.imgObj.y;
+
+                    this.extraObj.width = imgObj.width - extraObj.width;
+                    this.extraObj.x += 10 - this.extraObj.width;
+                    this.imgObj.y +=
+                      (10 - this.extraObj.width) * (imgObj.y < 0 ? -1 : 1);
+                  }
+
+                  this.extraObj.height = imgObj.height;
+                  this.imgObj.img = imgObj.img;
+                  this.imgObj.wallWrap = true;
+                  if (settings.game.walls) {
+                    this.imgObj = "DONT DRAW!!!";
+                  }
+                })(),
+              ).map((element) => element[1]),
+            );
+          }
+
+          gameCanvasCtx.save();
+          gameCanvasCtx.translate(imgObj.x, imgObj.y);
+          gameCanvasCtx.rotate((extraObj.angle * Math.PI) / 180);
+          gameCanvasCtx.translate(
+            extraObj.angle >= 180 ? -1 * map.tile_length : 0,
+            extraObj.angle <= 180 && extraObj.angle !== 0
+              ? -1 * map.tile_length
+              : 0,
+          );
+          gameCanvasCtx.scale(
+            imgObj.height / map.tile_length,
+            imgObj.width / map.tile_length,
+          );
+          gameCanvasCtx.translate(
+            imgObj.height < 0 ? imgObj.height : 0,
+            imgObj.width < 0 ? imgObj.width : 0,
+          );
+
+          if (imgObj.wallWrap) {
+            if (settings.game.walls) {
+              return;
+            }
+            switch (extraObj.connect) {
+              case "head": {
+                gameCanvasCtx.fillRect(
+                  0,
+                  1,
+                  tickCounter > 3 ? tickCounter - 4 : 0,
+                  8,
+                );
+                break;
+              }
+              case "tail": {
+                gameCanvasCtx.fillRect(0, 1, tickCounter < 6 ? 3 : 0, 8);
+                break;
+              }
+            }
+          } else {
+            switch (extraObj.connect) {
+              case "head": {
+                gameCanvasCtx.fillRect(
+                  7 + (wallWrap && tickCounter > 4 ? 4 - tickCounter : 0),
+                  1,
+                  wallWrap && tickCounter > 4 ? -7 : -tickCounter,
+                  8,
+                );
+                break;
+              }
+              case "tail": {
+                gameCanvasCtx.fillRect(
+                  3,
+                  1,
+                  appleGrow || (wallWrap && tickCounter > 3)
+                    ? 0
+                    : map.tile_length - tickCounter + (wallWrap ? -3 : 1),
+                  8,
+                );
+                break;
+              }
+            }
+          }
+          gameCanvasCtx.drawImage(
+            imgObj.img,
+            extraObj.x,
+            extraObj.y,
+            extraObj.width,
+            extraObj.height,
+            0,
+            0,
+            extraObj.width,
+            extraObj.height,
+          );
+          gameCanvasCtx.globalCompositeOperation = "source-atop";
+
+          gameCanvasCtx.fillRect(0, 0, extraObj.width, extraObj.height);
+          if (imgObj.overlay) {
+            gameCanvasCtx.globalCompositeOperation = "source-over";
+            gameCanvasCtx.drawImage(
+              imgObj.overlay.img,
+              extraObj.x,
+              extraObj.y,
+              extraObj.width,
+              extraObj.height,
+              0,
+              0,
+              extraObj.width,
+              extraObj.height,
+            );
+          }
+
+          gameCanvasCtx.restore();
+        }
+      }
+    </script>
+
+    <!--Game-->
+    <script>
       async function defineKeybinds() {
         if (localStorage.getItem("keybinds")) {
           return JSON.parse(localStorage.getItem("keybinds"));
@@ -1768,7 +2023,6 @@
 
       async function defineSettings() {
         let Json = await (await fetch(`${path}default/settings.JSON`)).json();
-        console.log(Json);
         if (
           typeof settings !== "object" &&
           settings !== null &&
@@ -1800,7 +2054,7 @@
         }
 
         settings.controls.swipeThreshold.val =
-          (deviceInfo.aspectRatio < canvas.width / canvas.height
+          (deviceInfo.aspectRatio < gameCanvas.width / gameCanvas.height
             ? deviceInfo.width
             : deviceInfo.height) /
           (1.0112 * 1.047018 ** settings.controls.swipeThreshold.mult -
@@ -1814,6 +2068,7 @@
         defineKeybinds().then((value) => {
           Keybinds = value;
           defineSettings().then(() => {
+            loadColors();
             newGame();
             pauseGame();
             start = false;
@@ -1834,10 +2089,11 @@
           this.angle_b;
           this.width = map.tile_length;
           this.height = map.tile_length;
-          this.src = `${path}textures/Spreadsheet.png`;
+          this.src = `${path}textures/baseSpritesheet.png`;
           this.srcCoords = this.calcTexture();
           this.img = new Image();
           this.img.src = this.src;
+
           adressTiles(x, y, "segment");
         }
         calcTexture() {
@@ -1861,8 +2117,8 @@
           if (!pos) {
             let freeTiles = tiles.filter((tileObj) => tileObj.state === "free");
             pos = freeTiles[Math.floor(Math.random() * freeTiles.length)];
-            this.x = pos.x + map.start_x;
-            this.y = pos.y + map.start_y;
+            this.x = pos.x;
+            this.y = pos.y;
           } else {
             this.x = pos.x;
             this.y = pos.y;
@@ -1870,11 +2126,15 @@
           this.width = map.tile_length;
           this.height = map.tile_length;
           this.angle = 0;
-          this.src = `${path}textures/Spreadsheet.png`;
+          this.src = `${path}textures/baseSpritesheet.png`;
           this.srcCoords = { x: 20, y: 10 };
           this.img = new Image();
-
           this.img.src = this.src;
+          this.overlay = new (function () {
+            this.img = new Image();
+            this.src = `${path}textures/overlaySpritesheet.png`;
+            this.img.src = this.src;
+          })();
 
           adressTiles(this.x, this.y, "apple");
         }
@@ -1887,16 +2147,17 @@
 
         updateloop = setTimeout(
           update,
-          Key.state.swipe
-            ? 500
-            : (15 * settings.game.speedMult) /
-                (settings.game.hardModeMult.on
-                  ? settings.game.hardModeMult.val
-                  : 1),
+          (15 * settings.game.speedMult) /
+            (settings.game.hardModeMult.on
+              ? settings.game.hardModeMult.val
+              : 1),
         );
 
         directionHandler();
         move(Snake);
+        if (!appleGrow) {
+          move(SnakeSegments[0]);
+        }
 
         if (tickCounter >= map.tile_length) {
           updateDirection();
@@ -2035,74 +2296,20 @@
         };
 
         if (
-          obj.x < map.start_x ||
-          obj.x > map.start_x + map.width - map.tile_length ||
-          obj.y < map.start_y ||
-          obj.y > map.start_y + map.height - map.tile_length
+          obj.x < 0 ||
+          obj.x > 0 + map.width - map.tile_length ||
+          obj.y < 0 ||
+          obj.y > 0 + map.height - map.tile_length
         ) {
           if (settings.game.walls) {
             dead();
             return;
           }
-          obj.x = ((obj.x + map.width - map.start_x) % map.width) + map.start_x;
-          obj.y =
-            ((obj.y + map.height - map.start_y) % map.height) + map.start_y;
+          obj.x = (obj.x + map.width) % map.width;
+          obj.y = (obj.y + map.height) % map.height;
           checkBodyCollision();
         }
         checkBodyCollision();
-
-        /*
-      checkBodyCollision = () => {
-               if (
-                 adressTiles(Snake.x, Snake.y, "read").state === "segment" &&
-                 !(
-                   Snake.x === SnakeSegments[0].last.x &&
-                   Snake.y === SnakeSegments[0].last.y
-                 )
-               ) {
-                 dead();
-               }
-             };
-
-
-             if (Snake.x > map.start_x + map.width - map.tile_length) {
-               if (settings.game.walls) {
-                 dead();
-               } else {
-                 Snake.x -= map.width;
-               }
-               checkBodyCollision();
-               return;
-             }
-             if (Snake.x < map.start_x) {
-               if (settings.game.walls) {
-                 dead();
-               } else {
-                 Snake.x += map.width;
-               }
-               checkBodyCollision();
-               return;
-             }
-             if (Snake.y > map.start_y + map.height - map.tile_length) {
-               if (settings.game.walls) {
-                 dead();
-               } else {
-                 Snake.y -= map.height;
-               }
-               checkBodyCollision();
-               return;
-             }
-             if (Snake.y < map.start_y) {
-               if (settings.game.walls) {
-                 dead();
-               } else {
-                 Snake.y += map.height;
-               }
-               checkBodyCollision();
-               return;
-             }
-             checkBodyCollision();
-            */
       }
 
       function manageSnakeSegments(x, y) {
@@ -2171,22 +2378,17 @@
         }
       }
 
-      function adressTiles(x, y, state) {
-        //xy in px
-        if (x % 10 !== 0 || y % 10 !== 0) {
-          console.error("em");
-        }
+      function adressTiles(x, y, state) /*xy in px*/ {
         let targetTile =
           tiles[
-            (((x - map.start_x) / map.tile_length) * map.height) /
-              map.tile_length +
-              (y - map.start_y) / map.tile_length
+            ((x / map.tile_length) * map.height) / map.tile_length +
+              y / map.tile_length
           ];
         if (state === "read") {
           return targetTile;
         } else {
           if (targetTile === undefined) {
-            //canvas.setAttribute("style", "background-color:#ff0000");
+            //gameCanvas.setAttribute("style", "background-color:#ff0000");
             console.error(targetTile, x, y, state);
           } else {
             targetTile.state = state;
@@ -2216,302 +2418,169 @@
         );
         css.menuText.innerText = "You Died";
       }
+    </script>
+  </head>
+  <body onload="Game()">
+    <div class="menu" id="mainMenu">
+      <header id="menuText"></header>
+      <div id="buttonDiv"></div>
+    </div>
+    <div id="gameContainer">
+      <!-- readd when pattern generated in js 
+      <canvas id="bgCanvas"></canvas> -->
+      <img
+        id="gameBg"
+        src="/-Serpent-/bgOverlay.png"
+        alt="borderAndBgOverlay"
+      />
+      <canvas id="gameCanvas" width="240" height="160" tabindex="-1"></canvas>
+      <canvas id="realPxCanvas" tabindex="-1"></canvas>
+    </div>
 
-      //Draw
+    <!--Definitions-->
+    <script>
+      const path = `/${window.location.pathname.split("/")[1]}/`;
+      let gameCanvas = document.getElementById("gameCanvas");
+      let gameCanvasCtx = gameCanvas.getContext("2d");
+      gameCanvasCtx.imageSmoothingEnabled = false;
 
-      function loadImages() {
-        backgroundImage.src = `${path}textures/Background.png`;
-        Snake.img = new Image();
-        Snake.img.src = Snake.src;
-      }
+      let realPxCanvas = document.getElementById("realPxCanvas");
+      let realPxCanvasCtx = realPxCanvas.getContext("2d");
 
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(backgroundImage, 0, 0);
+      realPxCanvas.width = window.innerWidth;
+      realPxCanvas.height = window.innerHeight;
 
-        //ctx.fillRect(map.start_x, map.start_y, map.width, map.height);
+      gameCanvas.tabIndex = 0;
+      gameCanvas.focus();
 
-        rotate(SnakeSegments[0], {
-          x: 20,
-          y: 0,
-          angle: getInverseDir(SnakeSegments[0].angle),
-          connect: "tail",
-          width: map.tile_length,
-          height: map.tile_length,
-        });
-        rotate(SnakeSegments[1], {
-          x: 0,
-          y: 0,
-          angle: getInverseDir(SnakeSegments[1].angle),
-          width: map.tile_length,
-          height: map.tile_length,
-        });
-        for (let n = 2; n < SnakeSegments.length - 1; n++) {
-          rotate(SnakeSegments[n]);
-        }
-        rotate(SnakeSegments[SnakeSegments.length - 1], {
-          x: 0,
-          y: 0,
-          angle: SnakeSegments[SnakeSegments.length - 2].angle,
-          width: map.tile_length,
-          height: map.tile_length,
-        });
-        Apples.forEach((element) => {
-          rotate(element);
-        });
+      let deviceInfo = {
+        width: gameCanvas.getBoundingClientRect().width,
+        height: gameCanvas.getBoundingClientRect().height,
 
-        ctx.fillStyle = "#FF6A00";
-        rotate(Snake, {
-          x: Snake.srcCoords.x,
-          y: Snake.srcCoords.y,
-          angle: Snake.angle,
-          connect: "head",
-          width: map.tile_length,
-          height: map.tile_length,
-        });
-        if (!appleGrow) {
-          move(SnakeSegments[0]);
-        }
+        aspectRatio:
+          gameCanvas.getBoundingClientRect().width /
+          gameCanvas.getBoundingClientRect().height,
+      };
 
-        if (settings.dev.touchbox) {
-          let aspectRatioRatio;
-          ctx.fillRect(
-            screenToCanvasPx("width"),
-            screenToCanvasPx("height"),
+      let css = {
+        mainMenu: document.getElementById("mainMenu"),
+        menuText: document.getElementById("menuText"),
+        menuButtons: document.getElementsByClassName("menuButton"),
+        tables: {},
+      };
 
-            swipeThresholdButForCanvas("width") * 2,
-            swipeThresholdButForCanvas("height") * 2,
-          );
+      css.mainMenu.buttonDiv = document.getElementById("buttonDiv");
 
-          function screenToCanvasPx(dir) {
-            aspectRatioRatio =
-              dir === "height"
-                ? canvas.width /
-                  canvas.height /
-                  (deviceInfo.width / deviceInfo.height)
-                : deviceInfo.width /
-                  deviceInfo.height /
-                  (canvas.width / canvas.height);
+      let Key = {
+        state: {
+          up: false,
+          left: false,
+          down: false,
+          right: false,
 
-            let calc =
-              ((touch.lastpos[dir === "width" ? "x" : "y"] * canvas[dir]) /
-                deviceInfo[dir]) *
-              ((dir === "width" || dir === "height") && aspectRatioRatio > 1
-                ? aspectRatioRatio
-                : 1);
+          swipe: false,
+        },
+        functions: {
+          pause: pauseGame,
+          toggleFullscreen,
+          /*scoreUp: function () {
+                              Snake.segmentCount++;
+                            },*/
+        },
+      };
 
-            //calc ratio right
+      let Keybinds;
 
-            calc -=
-              aspectRatioRatio > 1
-                ? (canvas[dir] * (aspectRatioRatio - 1)) / 2
-                : 0;
+      let leaderboardArr = localStorage.getItem("leaderboardArray")
+        ? JSON.parse(localStorage.getItem("leaderboardArray"))
+        : [
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
+            { name: "-", score: 0 },
 
-            //calc at mousepointer
+            { name: "-", score: 0 },
+          ];
 
-            calc -= swipeThresholdButForCanvas();
+      let tickCounter = 0;
+      let alive = false;
+      let start = true;
+      let updateloop;
+      let directionChange;
 
-            return calc;
-          }
-          function swipeThresholdButForCanvas() {
-            return (
-              settings.controls.swipeThreshold.val *
-              (canvas.width /
-                canvas.height /
-                (deviceInfo.width / deviceInfo.height) <
-              1
-                ? canvas.width /
-                  (canvas.width /
-                    canvas.height /
-                    (deviceInfo.width / deviceInfo.height)) /
-                  deviceInfo.width
-                : (canvas.height *
-                    (canvas.width /
-                      canvas.height /
-                      (deviceInfo.width / deviceInfo.height))) /
-                  deviceInfo.height)
-            );
-          }
-        }
+      let map = {
+        width: 240,
+        height: 160,
+        tile_length: 10,
+        appleCout: 2,
+      };
 
-        requestAnimationFrame(draw);
+      let bufferDirection;
+      let Snake = {
+        x: 80,
+        y: 80,
+        last: { x: 80, y: 80 },
+        nextAngle: 0,
+        bufferAngle: 0,
+        angle: 0,
+        segmentCount: 4,
+        startSegmentCount: 4,
+        width: map.tile_length,
+        height: map.tile_length,
+        src: `${path}textures/baseSpritesheet.png`,
+        srcCoords: { x: 10, y: 0 },
+        overlay: { src: `${path}textures/overlaySpritesheet.png` },
+      };
 
-        function rotate(
-          imgObj,
-          extraObj = {
-            x: imgObj.srcCoords.x,
-            y: imgObj.srcCoords.y,
-            width: Math.abs(imgObj.width),
-            height: Math.abs(imgObj.height),
-            angle: imgObj.angle,
-          },
-        ) {
-          if (imgObj === "DONT DRAW!!!") {
-            return;
-          }
-          let wallWrap = false;
-          if (!extraObj?.width || !extraObj?.height) {
-            console.error(
-              new Error(
-                `Missing property w or h\nw: ${extraObj.width}\nh: ${extraObj.height}`,
-              ),
-            );
-          }
-          if (extraObj.connect === "tail" && imgObj.wallWrap !== true) {
-            extraObj.angle = getInverseDir(extraObj.angle);
-          }
-          if (
-            (imgObj.x < map.start_x ||
-              imgObj.x > map.start_x + map.width - map.tile_length ||
-              imgObj.y < map.start_y ||
-              imgObj.y > map.start_y + map.height - map.tile_length) &&
-            imgObj.wallWrap !== true
-          ) {
-            wallWrap = true;
-            rotate(
-              ...Object.entries(
-                new (function () {
-                  this.imgObj = {};
-                  this.extraObj = structuredClone(extraObj);
-                  if (
-                    imgObj.x < map.start_x ||
-                    imgObj.x > map.start_x + map.width - map.tile_length
-                  ) {
-                    this.imgObj.x =
-                      imgObj.x + map.width * (imgObj.x < map.start_x ? 1 : -1);
-                    this.imgObj.y = imgObj.y;
+      let SnakeSegments = [];
 
-                    extraObj.width =
-                      imgObj.x < this.imgObj.x
-                        ? map.tile_length + imgObj.x - map.start_x
-                        : map.start_x - this.imgObj.x;
-
-                    this.extraObj.width = imgObj.width - extraObj.width;
-                    this.extraObj.x += 10 - this.extraObj.width;
-                    this.imgObj.x +=
-                      (10 - this.extraObj.width) *
-                      (imgObj.x < map.start_x ? -1 : 1);
-                  } else {
-                    this.imgObj.x = imgObj.x;
-                    this.imgObj.y =
-                      imgObj.y + map.height * (imgObj.y < map.start_y ? 1 : -1);
-                    extraObj.width =
-                      imgObj.y < this.imgObj.y
-                        ? map.tile_length + imgObj.y - map.start_y
-                        : map.start_y - this.imgObj.y;
-
-                    this.extraObj.width = imgObj.width - extraObj.width;
-                    this.extraObj.x += 10 - this.extraObj.width;
-                    this.imgObj.y +=
-                      (10 - this.extraObj.width) *
-                      (imgObj.y < map.start_y ? -1 : 1);
-                  }
-
-                  this.extraObj.height = imgObj.height;
-                  this.imgObj.img = imgObj.img;
-                  this.imgObj.wallWrap = true;
-                  if (settings.game.walls) {
-                    this.imgObj = "DONT DRAW!!!";
-                  }
-                })(),
-              ).map((element) => element[1]),
-            );
-          }
-
-          ctx.save();
-          ctx.translate(imgObj.x, imgObj.y);
-          ctx.rotate((extraObj.angle * Math.PI) / 180);
-          ctx.translate(
-            extraObj.angle >= 180 ? -1 * map.tile_length : 0,
-            extraObj.angle <= 180 && extraObj.angle !== 0
-              ? -1 * map.tile_length
-              : 0,
-          );
-          ctx.scale(
-            imgObj.height / map.tile_length,
-            imgObj.width / map.tile_length,
-          );
-          ctx.translate(
-            imgObj.height < 0 ? imgObj.height : 0,
-            imgObj.width < 0 ? imgObj.width : 0,
-          );
-
-          if (imgObj.wallWrap) {
-            if (settings.game.walls) {
-              return;
-            }
-            switch (extraObj.connect) {
-              case "head": {
-                ctx.fillRect(0, 1, tickCounter > 3 ? tickCounter - 4 : 0, 8);
-                break;
-              }
-              case "tail": {
-                ctx.fillRect(0, 1, tickCounter < 6 ? 3 : 0, 8);
-                break;
-              }
-            }
-          } else {
-            switch (extraObj.connect) {
-              case "head": {
-                ctx.fillRect(
-                  7 + (wallWrap && tickCounter > 4 ? 4 - tickCounter : 0),
-                  1,
-                  wallWrap && tickCounter > 4 ? -7 : -tickCounter,
-                  8,
-                );
-                break;
-              }
-              case "tail": {
-                ctx.fillRect(
-                  3,
-                  1,
-                  appleGrow || (wallWrap && tickCounter > 3)
-                    ? 0
-                    : map.tile_length - tickCounter + (wallWrap ? -3 : 1),
-                  8,
-                );
-                break;
-              }
-            }
-          }
-          ctx.drawImage(
-            imgObj.img,
-            extraObj.x,
-            extraObj.y,
-            extraObj.width,
-            extraObj.height,
-            0,
-            0,
-            extraObj.width,
-            extraObj.height,
-          );
-
-          ctx.restore();
+      let tiles = [];
+      for (let b = 0; b < map.width / map.tile_length; b++) {
+        for (let c = 0; c < map.height / map.tile_length; c++) {
+          let tileObj = {
+            name: `tileObj_${b}_${c}`,
+            x: b * map.tile_length,
+            y: c * map.tile_length,
+            state: "free",
+          };
+          tiles.push(tileObj);
         }
       }
 
-      /*TODO
-                               statistics
-                                 4 fun
+      let Apples = [];
 
+      let appleGrow = false;
 
-           win menu + time // and score
+      let touch = {
+        lastpos: { x: 0, y: 0 },
+        currentpos: { x: 0, y: 0 },
+      };
 
-                               settings
-                                 choose all colors
-
-                               settings obj editing (for super nerds like u bc otherwise u should use the gui
-
-           BUG FIX:
-             stop move if death when move() x 10
-             canvas  % (operator) thing for game
-                                                                                     Someday:
-                                                                                               Language
-                                                                                               leaderboard (global)
-
-
-                                               speed slider / predetermined options
-                                               */
+      let settings = JSON.parse(
+        localStorage.getItem("settings") === null
+          ? "{}"
+          : localStorage.getItem("settings"),
+      );
     </script>
   </body>
 </html>
+<!-- TODO
+  statistics
+
+  win menu + time // and score
+
+  settings
+    speed slider / predetermined options
+    
+  Someday:
+    Language
+    leaderboard (global)
+    
+  BUG FIX:
+-->
