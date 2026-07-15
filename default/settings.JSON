@@ -15,5 +15,16 @@
     } ,
     "dev":{
         "touchbox": false
+    },
+    "colors":{
+        "background": {
+            "innerBackground": "#00ff00",
+            "outerBackground": "#3f2800"
+        },
+        "game": {
+            "snake": "#ff6a00",
+            "apple": "#ff0000",
+            "touchbox": "#000000"
+        }
     }
 }
