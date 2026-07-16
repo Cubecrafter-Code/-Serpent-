@@ -1,0 +1,11 @@
+{
+    "mainMenu": {
+        "menuText": "Menu",
+        "continue": "Weiter",
+        "settings": "Einstellungen",
+        "leaderboard": "Rangliste",
+        "newGame": "Neues Spiel",
+        "versions": "Versionen",
+        "quit": "Beenden"
+    }
+}

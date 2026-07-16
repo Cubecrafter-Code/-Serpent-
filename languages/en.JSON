@@ -1,0 +1,87 @@
+{
+    "main": {
+        "header": "Menu",
+        "continue": "Continue",
+        "back": "Back",
+        "settings": {
+            "header": "Settings",
+            "game": {
+                "header": "Game",
+                "speed": "Speed",
+                "apples": "Apples",
+                "denyLeave": "Deny Leave",
+                "hardMode": "Hard Mode",
+                "walls": "Walls"
+            },
+            "graphics": {
+                "header": "Graphics",
+                "toggleFullscreen": "Toggle Fullscreen",
+                "colors": {
+                    "header": "Change Colors",
+                    "reset": "Reset",
+                    "background": {
+                        "header": "Background",
+                        "outerBackground": "Outer Background",
+                        "innerBackground": "Inner Background"
+                    },
+                    "game": {
+                        "header": "Game",
+                        "snake": "Snake",
+                        "apple": "Apple",
+                        "touchBox": "Touch Box" 
+                    }
+                },
+                "default": "Restore Default"
+            },
+            "controls": {
+                "header": "Controls",
+                "sensitivity": "Sensitivity",
+                "keybinds": {
+                    "header": "Keybinds",
+                    "newKey": "New Key",
+                    "reset": "Reset",
+                    "state": {
+                        "header": "State",
+                        "up": "Up",
+                        "left": "Left",
+                        "down": "Down",
+                        "right": "Right",
+                        "swipe": "Swipe"
+                    },
+                    "functions": {
+                        "header": "functions",
+                        "pause": "Pause",
+                        "toggleFullscreen": "Toggle Fullscreen"
+                    } 
+                },
+                "reset": "Reset All",
+                "default": "Restore Default"
+            },
+            "language": {
+                "header": "Language"
+            },
+            "dev": {
+                "header": "Dev",
+                "touchBox": "Touch Box"
+            },
+            "reset": "Reset Settings"
+        },
+        "leaderboard": "Leaderboard",
+        "newGame": "New Game",
+        "versions": {
+            "header": "Versions",
+            "grid": {
+                "snake": {
+                    "header": "Snake",
+                    "main": "Main",
+                    "beta": "Beta"
+                },
+                "revolutionIdleCalc": {
+                    "header": "Revolution Idle Calc",
+                    "main": "Main"
+                }
+            }
+        },
+        "quit": "Quit"
+    }
+}
