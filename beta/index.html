@@ -563,8 +563,11 @@
           window.innerHeight / baseHeight,
         );
 
-        gameCanvas.style.width = baseWidth * scale + "px";
-        gameCanvas.style.height = baseHeight * scale + "px";
+        gameCanvas.style.width = `${baseWidth * scale}px`;
+        gameCanvas.style.height = `${baseHeight * scale}px`;
+
+        realPxCanvas.width = window.innerWidth;
+        realPxCanvas.height = window.innerHeight;
 
         deviceInfo = {
           width: window.innerWidth,
@@ -603,22 +606,53 @@
             detail: { key: inputKey, state },
           }),
         );
+        let section;
+        getSection(Keybinds, inputKey);
 
-        Key.state.up =
-          Key.state.left =
-          Key.state.down =
-          Key.state.right =
-            false;
+        if (!section) {
+          return;
+        }
+        switch (typeof Key[section][Keybinds[section][inputKey]]) {
+          case "boolean": {
+            Key[section][Keybinds[section][inputKey]] = state;
+            break;
+          }
+          case "function": {
+            if (state) {
+              Key[section][Keybinds[section][inputKey]]();
+            }
+            break;
+          }
+          default: {
+            console.error(
+              inputKey,
+              section,
+              typeof Key[section][Keybinds[section][inputKey]],
+            );
+          }
+        }
 
-        if (Keybinds.state?.[inputKey] !== undefined) {
+        function getSection(obj, key) {
+          Object.entries(obj).forEach((potentialSection) => {
+            if (
+              Object.entries(potentialSection[1])
+                .map((element) => element[0])
+                .includes(key)
+            ) {
+              section = potentialSection[0];
+              return;
+            }
+          });
+        }
+        /*if (typeof Keybinds.state?.[inputKey]) {
           Key.state[Keybinds.state[inputKey]] = state;
         }
-        if (
-          state &&
-          Key.functions[Keybinds.functions?.[inputKey]] !== undefined
-        ) {
-          Key.functions[Keybinds.functions?.[inputKey]]();
+        //console.log(Key.state[Keybinds.state[inputKey]]);
+        if (Key.state[Keybinds.state[inputKey]] !== undefined) {
+          Key.state[Keybinds.state[inputKey]]();
+          return;
         }
+        Key.functions[Keybinds.functions[inputKey]]();*/
       }
 
       document.addEventListener("mousedown", function (e) {
@@ -908,6 +942,7 @@
       class colorInput {
         static id = 0;
         constructor(obj, val) {
+          console.log(obj, val);
           this.elementType = "input";
           this.type = "color";
           this.id = `${this.id}_input`;
@@ -961,16 +996,18 @@
 
       class grid {
         static id = 0;
-        constructor(text, obj, gridType) {
+        constructor(tObj, obj, gridType) {
           this.elementType = "div";
           this.className = "gridContainer";
           this.id = `grid_${grid.id++}`;
-          this.children = text
-            ? [{ elementType: "h4", id: `${this.id}_h1`, text }]
-            : [];
+          this.children = [
+            { elementType: "h4", id: `${this.id}_h4`, text: tObj.header },
+          ];
+
           let n = 0;
 
           Object.entries(obj).forEach((section) => {
+            console.log(section[0]);
             this.children.push({
               elementType: "div",
               id: `${this.id}_section_${n}`,
@@ -978,7 +1015,7 @@
               children: [
                 {
                   elementType: "p",
-                  text: section[0],
+                  text: tObj[section[0]].header,
                   className: `gridSectionHeader`,
                   id: `${this.id}_section_header_${n++}`,
                 },
@@ -986,6 +1023,25 @@
             });
 
             Object.entries(section[1]).forEach((element) => {
+              console.log(element[0]);
+              const colorElements = () => {
+                return [
+                  new colorInput(section[1], element[0]),
+                  new menuButtonJs(tObj.reset, async function (e) {
+                    await (await fetch(`${path}default/settings.JSON`))
+                      .json()
+                      .then((value) => {
+                        this.parentNode.children[1].value = settings.colors[
+                          section[0]
+                        ][element[0]] = value.colors[section[0]][element[0]];
+                        changeColor(value.colors[section[0]], element[0]);
+                      });
+
+                    localStorage.setItem("settings", JSON.stringify(settings));
+                  }),
+                ];
+              };
+
               const keybindElements = () => {
                 return [
                   {
@@ -1129,23 +1185,7 @@
                   ),
                 ];
               };
-              const colorElements = () => {
-                return [
-                  new colorInput(section[1], element[0]),
-                  new menuButtonJs("Reset", async function (e) {
-                    await (await fetch(`${path}default/settings.JSON`))
-                      .json()
-                      .then((value) => {
-                        this.parentNode.children[1].value = settings.colors[
-                          section[0]
-                        ][element[0]] = value.colors[section[0]][element[0]];
-                        changeColor(value.colors[section[0]], element[0]);
-                      });
 
-                    localStorage.setItem("settings", JSON.stringify(settings));
-                  }),
-                ];
-              };
               const versionElements = () => {
                 console.count();
                 return [
@@ -1175,7 +1215,7 @@
                   {
                     elementType: "p",
                     id: `${this.id}_section_bind_${n}`,
-                    text: `${element[0]}`,
+                    text: tObj[section[0]][element[0]],
                   },
                   ...(() => {
                     switch (gridType) {
@@ -1195,7 +1235,7 @@
                   //
                 ],
               });
-              if ((gridType = "versions")) {
+              if (gridType === "versions") {
                 const lastRow = this.children.at(-1).children.at(-1);
                 lastRow.elementType = "a";
                 lastRow.href = element[1].href;
@@ -1255,20 +1295,20 @@
         menuButtonJs.id = 0;
         createElements(
           [
-            new menuButtonJs("Continue", continueGame),
-            new menuButtonJs("Settings", settingsMenu),
-            new menuButtonJs("Leaderboard", leaderboard),
+            new menuButtonJs(t.main.continue, continueGame),
+            new menuButtonJs(t.main.settings.header, settingsMenu),
+            new menuButtonJs(t.main.leaderboard, leaderboard),
+            new menuButtonJs(t.main.newGame, newGame),
+            new menuButtonJs(t.main.versions.header, versionMenu),
+            new menuButtonJs(t.main.quit, quit),
+            /*new menuButtonJs("Credits")*/
             /*new menuButtonJs("Statistics", function () {
               debugButton(this);
             }),*/
-            new menuButtonJs("New Game", newGame),
-            /*new menuButtonJs("Credits")*/
-            new menuButtonJs("Versions", versionMenu),
-            new menuButtonJs("Quit", quit),
           ],
           css.mainMenu.buttonDiv,
         );
-        css.menuText.innerText = "Menu";
+        css.menuText.innerText = t.main.header;
         css.mainMenu.classList.remove("expanded");
         css.mainMenu.hidden = false;
       }
@@ -1283,6 +1323,8 @@
         if (alive) {
           alive = false;
           mainMenu();
+        } else {
+          css.mainMenu.buttonDiv.children[0].onclick();
         }
       }
 
@@ -1293,31 +1335,31 @@
         menuButtonJs.id = 0;
         createElements(
           [
-            new menuButtonJs("Back", function () {
+            new menuButtonJs(t.main.back, function () {
               localStorage.setItem("settings", JSON.stringify(settings));
               mainMenu();
             }),
-            new menuButtonJs("Game", gameSettings),
-            new menuButtonJs("Graphics", graphicsSettings),
-            new menuButtonJs("Controls", controlSettings),
-            //new menuButtonJs("Language", languageSettings),
-            new menuButtonJs("Dev", devSettings),
-            new menuButtonJs("Reset Settings", resetSettings),
+            new menuButtonJs(t.main.settings.game.header, gameSettings),
+            new menuButtonJs(t.main.settings.graphics.header, graphicsSettings),
+            new menuButtonJs(t.main.settings.controls.header, controlSettings),
+            new menuButtonJs(t.main.settings.language.header, languageSettings),
+            new menuButtonJs(t.main.settings.dev.header, devSettings),
+            new menuButtonJs(t.main.settings.reset, resetSettings),
             //cookies
           ],
           css.mainMenu.buttonDiv,
         );
 
         function gameSettings() {
-          css.menuText.innerText = "Game Settings";
+          css.menuText.innerText = t.main.settings.game.header;
           inputButton.id = 0;
           menuButtonJs.id = 0;
           chooseButton.id = 0;
           createElements(
             [
-              new menuButtonJs("Back", settingsMenu),
+              new menuButtonJs(t.main.back, settingsMenu),
               new inputButton(
-                "Speed",
+                t.main.settings.game.speed,
                 (e) =>
                   changeSettings(
                     1 / getInputText(e, "Number"),
@@ -1328,7 +1370,7 @@
               ),
               new chooseButton(changeSettings),
               new inputButton(
-                "Deny Leave",
+                t.main.settings.game.denyLeave,
                 (e) =>
                   changeSettings(
                     getInputText(e, "Number"),
@@ -1338,17 +1380,20 @@
                 settings.game.preventAccidentalLeave,
               ),
               new menuButtonJs(
-                `Hard Mode: ${settings.game.hardModeMult.on}`,
+                `${t.main.settings.game.hardMode}: ${settings.game.hardModeMult.on}`,
                 (e) => {
                   settings.game.hardModeMult.on =
                     !settings.game.hardModeMult.on;
-                  e.target.innerText = `Hard Mode: ${settings.game.hardModeMult.on}`;
+                  e.target.innerText = `${t.main.settings.game.hardMode}: ${settings.game.hardModeMult.on}`;
                 },
               ),
-              new menuButtonJs(`Walls: ${settings.game.walls}`, (e) => {
-                settings.game.walls = !settings.game.walls;
-                e.target.innerText = `Walls: ${settings.game.walls}`;
-              }),
+              new menuButtonJs(
+                `${t.main.settings.game.walls}: ${settings.game.walls}`,
+                (e) => {
+                  settings.game.walls = !settings.game.walls;
+                  e.target.innerText = `${t.main.settings.game.walls}: ${settings.game.walls}`;
+                },
+              ),
             ],
             css.mainMenu.buttonDiv,
           );
@@ -1367,22 +1412,31 @@
         }
 
         function graphicsSettings() {
-          css.menuText.innerText = "Graphics Settings";
+          css.menuText.innerText = t.main.settings.graphics.header;
           menuButtonJs.id = 0;
           colorInput.id = 0;
           createElements(
             [
-              new menuButtonJs("Back", settingsMenu),
-              new menuButtonJs("Toggle Fullscreen", (e) => toggleFullscreen(e)),
-              new grid("Change Colors", settings.colors, "colors"),
-              new menuButtonJs("Resore Default", async function (e) {
-                await (await fetch(`${path}default/settings.JSON`))
-                  .json()
-                  .then((value) => (settings.colors = value.colors));
-                loadColors();
-                graphicsSettings();
-                localStorage.setItem("settings", JSON.stringify(settings));
-              }),
+              new menuButtonJs(t.main.back, settingsMenu),
+              new menuButtonJs(t.main.settings.graphics.toggleFullscreen, (e) =>
+                toggleFullscreen(e),
+              ),
+              new grid(
+                t.main.settings.graphics.colors,
+                settings.colors,
+                "colors",
+              ),
+              new menuButtonJs(
+                t.main.settings.graphics.default,
+                async function (e) {
+                  await (await fetch(`${path}default/settings.JSON`))
+                    .json()
+                    .then((value) => (settings.colors = value.colors));
+                  loadColors();
+                  graphicsSettings();
+                  localStorage.setItem("settings", JSON.stringify(settings));
+                },
+              ),
             ],
             css.mainMenu.buttonDiv,
           );
@@ -1394,76 +1448,71 @@
           slider.id = 0;
           createElements(
             [
-              new menuButtonJs("Back", settingsMenu),
+              new menuButtonJs(t.main.back, settingsMenu),
               new slider(
-                "Sensitivity",
+                t.main.settings.controls.sensitivity,
                 settings.controls.swipeThreshold,
                 "mult",
               ),
-              new menuButtonJs("Keybinds", keybindSettings),
-            ],
-            css.mainMenu.buttonDiv,
-          );
+              new grid(
+                t.main.settings.controls.keybinds,
+                getKeybinds(),
+                "keybinds",
+              ),
 
-          function keybindSettings() {
-            css.menuText.innerText = "Change Keybinds";
-
-            menuButtonJs.id = 0;
-            grid.id = 0;
-
-            createElements(
-              [
-                new menuButtonJs("Back", controlSettings),
-                new grid("Change Keybinds", getKeybinds(), "keybinds"),
-
-                new menuButtonJs("Reset All", function () {
-                  Object.entries(Keybinds).forEach((element) => {
-                    Keybinds[element[0]] = {};
-                    localStorage.setItem("keybinds", JSON.stringify(Keybinds));
-                    keybindSettings();
-                  });
-                }),
-                new menuButtonJs("Restore Default", async function () {
+              new menuButtonJs(t.main.settings.controls.reset, function () {
+                Object.entries(Keybinds).forEach((element) => {
+                  Keybinds[element[0]] = {};
+                  localStorage.setItem("keybinds", JSON.stringify(Keybinds));
+                  keybindSettings();
+                });
+              }),
+              new menuButtonJs(
+                t.main.settings.controls.default,
+                async function () {
                   Keybinds = await (
                     await fetch(`${path}default/keybinds.JSON`)
                   ).json();
                   localStorage.setItem("keybinds", JSON.stringify(Keybinds));
                   keybindSettings();
-                }),
-              ],
-              css.mainMenu.buttonDiv,
-            );
-          }
+                },
+              ),
+            ],
+            css.mainMenu.buttonDiv,
+          );
         }
 
         function languageSettings() {
-          css.menuText.innerText = "Language Settings";
+          css.menuText.innerText = t.main.settings.language.header;
           menuButtonJs.id = 0;
           createElements(
-            [new menuButtonJs("Back", settingsMenu)],
+            [new menuButtonJs(t.main.back, settingsMenu)],
             css.mainMenu.buttonDiv,
           );
         }
 
         function devSettings() {
-          css.menuText.innerText = "Dev Settings";
+          css.menuText.innerText = t.main.settings.dev.header;
           menuButtonJs.id = 0;
           createElements(
             [
-              new menuButtonJs("Back", settingsMenu),
-              new menuButtonJs(`Touch: ${settings.dev.touchbox}`, (e) => {
-                if (settings.dev.touchbox) {
-                  realPxCanvasCtx.clearRect(
-                    0,
-                    0,
-                    realPxCanvas.width,
-                    realPxCanvas.height,
-                  );
-                }
-                settings.dev.touchbox = !settings.dev.touchbox;
-                e.target.innerText = `Touch: ${settings.dev.touchbox}`;
-                localStorage.setItem("settings", JSON.stringify(settings));
-              }),
+              new menuButtonJs(t.main.back, settingsMenu),
+              new menuButtonJs(
+                `${t.main.settings.dev.touchBox}: ${settings.dev.touchBox}`,
+                (e) => {
+                  if (settings.dev.touchBox) {
+                    realPxCanvasCtx.clearRect(
+                      0,
+                      0,
+                      realPxCanvas.width,
+                      realPxCanvas.height,
+                    );
+                  }
+                  settings.dev.touchBox = !settings.dev.touchBox;
+                  e.target.innerText = `${t.main.settings.dev.touchBox}: ${settings.dev.touchBox}`;
+                  localStorage.setItem("settings", JSON.stringify(settings));
+                },
+              ),
             ],
             css.mainMenu.buttonDiv,
           );
@@ -1604,7 +1653,6 @@
         }
 
         generateSnakeSegments(Snake.x, Snake.y);
-        directionHandler();
         updateDirection();
         manageSnakeSegments(Snake.x, Snake.y);
 
@@ -1642,7 +1690,6 @@
           (e) => {
             if (e.detail.key !== "Escape") {
               start = false;
-              directionHandler();
               updateDirection();
               SnakeSegments.pop();
               manageSnakeSegments(Snake.x, Snake.y);
@@ -1784,16 +1831,17 @@
       }
 
       function versionMenu() {
-        css.menuText.innerText = "Versions";
+        css.menuText.innerText = t.main.versions.header;
 
         menuButtonJs.id = 0;
         createElements(
           [
+            new menuButtonJs(t.main.back, mainMenu),
             new grid(
-              null,
+              t.main.versions.grid,
               {
-                Snake: {
-                  Main: {
+                snake: {
+                  main: {
                     href: "https://cubecrafter-code.github.io/-Serpent-/",
                     src: "https://cubecrafter-code.github.io/-Serpent-/favicon.png",
                     width: "32",
@@ -1806,8 +1854,8 @@
                     height: "32",
                   },
                 },
-                "Revolution Idle Calc": {
-                  Main: {
+                revolutionIdleCalc: {
+                  main: {
                     href: "https://cubecrafter-code.github.io/RevolutionIdle_DTP_Calculator/",
                     src: "https://cubecrafter-code.github.io/RevolutionIdle_DTP_Calculator/icon.png",
                     width: "196",
@@ -1894,7 +1942,7 @@
           height: map.tile_length,
         });
 
-        if (settings.dev.touchbox) {
+        if (settings.dev.touchBox) {
           realPxCanvasCtx.clearRect(
             0,
             0,
@@ -1902,7 +1950,7 @@
             realPxCanvas.height,
           );
 
-          realPxCanvasCtx.fillStyle = settings.colors.game.touchbox;
+          realPxCanvasCtx.fillStyle = settings.colors.game.touchBox;
 
           realPxCanvasCtx.fillRect(
             touch.lastpos.x - settings.controls.swipeThreshold.val,
@@ -2139,6 +2187,17 @@
           10;
       }
 
+      async function defineLanguage() {
+        console.log(settings.selectedLanguage);
+        if (!settings.selectedLanguage) {
+          settings.selectedLanguage = "en";
+        }
+
+        t = await (
+          await fetch(`${path}languages/${settings.selectedLanguage}.JSON`)
+        ).json();
+      }
+
       async function Game() {
         //only functions //wait for default to load
 
@@ -2146,13 +2205,16 @@
           Keybinds = value;
           defineSettings().then(() => {
             loadColors();
-            newGame();
-            pauseGame();
-            start = false;
-
             resizeCanvas();
             loadImages();
-            draw();
+
+            defineLanguage().then((value) => {
+              console.log(t);
+              newGame();
+              pauseGame();
+              start = false;
+              draw();
+            });
           });
         });
       }
@@ -2230,7 +2292,6 @@
               : 1),
         );
 
-        directionHandler();
         move(Snake);
         if (!appleGrow) {
           move(SnakeSegments[0]);
@@ -2274,20 +2335,10 @@
         tickCounter++;
       }
 
-      function directionHandler() {
+      function directionHandler(angle) {
         let bufferDirection = Snake.nextAngle;
-        if (Key.state.up === true) {
-          Snake.nextAngle = 270;
-        }
-        if (Key.state.down === true) {
-          Snake.nextAngle = 90;
-        }
-        if (Key.state.left === true) {
-          Snake.nextAngle = 180;
-        }
-        if (Key.state.right === true) {
-          Snake.nextAngle = 0;
-        }
+
+        Snake.nextAngle = angle;
 
         if (
           bufferDirection !== Snake.nextAngle &&
@@ -2550,10 +2601,18 @@
 
       let Key = {
         state: {
-          up: false,
-          left: false,
-          down: false,
-          right: false,
+          up: () => {
+            directionHandler(270);
+          },
+          left: () => {
+            directionHandler(180);
+          },
+          down: () => {
+            directionHandler(90);
+          },
+          right: () => {
+            directionHandler(0);
+          },
 
           swipe: false,
         },
@@ -2644,11 +2703,18 @@
           ? "{}"
           : localStorage.getItem("settings"),
       );
+
+      let t; //language obj
     </script>
   </body>
 </html>
 <!-- TODO
   statistics
+    Apples eaten
+    deaths
+    games
+    fastest time
+    highest score
 
   win menu + time // and score
 
@@ -2659,5 +2725,6 @@
     Language
     leaderboard (global)
     
+  remove outside logic rotate
   BUG FIX:
 -->
